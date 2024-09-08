@@ -36,6 +36,14 @@ const User = sequelize.define('User', {
         },
         allowNull: false,
         defaultValue: 1 // Mặc định là 'customer'
+    },
+    resetPasswordToken: {
+        type: DataTypes.STRING,
+        allowNull: true,  // Cho phép null khi chưa đặt lại mật khẩu
+    },
+    resetPasswordExpires: {
+        type: DataTypes.DATE,
+        allowNull: true,  // Cho phép null khi chưa đặt lại mật khẩu
     }
 }, {
     hooks: {

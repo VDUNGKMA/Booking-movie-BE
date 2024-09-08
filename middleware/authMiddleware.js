@@ -46,11 +46,24 @@ exports.protect = async (req, res, next) => {
     }
 };
 
-// Middleware phân quyền
-exports.restrictTo = (...roles) => {
+// // Middleware phân quyền
+// exports.restrictTo = (...roles) => {
+//     return (req, res, next) => {
+//         // Kiểm tra vai trò của người dùng có trong danh sách các vai trò cho phép không
+//         if (!roles.includes(req.user.role)) {
+//             return res.status(403).json({
+//                 status: 'fail',
+//                 message: 'You do not have permission to perform this action'
+//             });
+//         }
+//         next();
+//     };
+// };
+// middleware/authMiddleware.js
+exports.restrictTo = (...allowedRoles) => {
     return (req, res, next) => {
-        // Kiểm tra vai trò của người dùng có trong danh sách các vai trò cho phép không
-        if (!roles.includes(req.user.role)) {
+        // Kiểm tra nếu role_id của người dùng có nằm trong danh sách allowedRoles không
+        if (!allowedRoles.includes(req.user.role_id)) {
             return res.status(403).json({
                 status: 'fail',
                 message: 'You do not have permission to perform this action'
