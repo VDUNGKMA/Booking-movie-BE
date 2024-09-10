@@ -89,6 +89,8 @@
 //     }
 // };
 const User = require('../models/user');
+const  Payment  = require('../models/Payment');
+
 // controllers/admin.controller.js
 exports.registerStaff = async (req, res) => {
     try {
@@ -266,5 +268,15 @@ exports.deleteUser = async (req, res) => {
             status: 'error',
             message: error.message
         });
+    }
+};
+
+// Thống kê doanh thu
+exports.getRevenue = async (req, res) => {
+    try {
+        const totalRevenue = await Payment.sum('amount');
+        res.status(200).json({ status: 'success', data: { totalRevenue } });
+    } catch (error) {
+        res.status(400).json({ status: 'fail', message: error.message });
     }
 };

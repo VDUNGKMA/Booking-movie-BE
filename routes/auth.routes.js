@@ -14,7 +14,6 @@ router.post('/register-customer', registerCustomer);
 // Route đăng nhập cho người dùng
 router.post('/login', login);
 
-
 // Route để gửi email yêu cầu đặt lại mật khẩu
 router.post('/forgotPassword', forgotPassword);
 

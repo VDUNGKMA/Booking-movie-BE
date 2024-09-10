@@ -35,7 +35,7 @@ const User = sequelize.define('User', {
             key: 'role_id'
         },
         allowNull: false,
-        defaultValue: 1 // Mặc định là 'customer'
+        defaultValue: 3 // Mặc định là 'customer'
     },
     resetPasswordToken: {
         type: DataTypes.STRING,
@@ -56,5 +56,20 @@ const User = sequelize.define('User', {
 // Thiết lập quan hệ giữa User và Role
 User.belongsTo(Role, { foreignKey: 'role_id' });
 Role.hasMany(User, { foreignKey: 'role_id' });
+User.associate = (models) => {
+    // Quan hệ nhiều-nhiều giữa Users và Tickets
+    User.belongsToMany(models.Ticket, {
+        through: 'UserTickets',
+        foreignKey: 'user_id',
+    });
 
+    // Quan hệ nhiều-nhiều giữa Users và Screenings
+    User.belongsToMany(models.Screening, {
+        through: 'UserScreenings',
+        foreignKey: 'user_id',
+    });
+
+    // Quan hệ 1-nhiều giữa Users và Payments
+    User.hasMany(models.Payment, { foreignKey: 'user_id' });
+};
 module.exports = User;

@@ -6,33 +6,74 @@ const {
     getAllUsers,
     getUserById,
     updateUser,
-    deleteUser
+    deleteUser,
+    getRevenue
 } = require('../controllers/admin.controller');
+const movieController = require('../controllers/movie.controller');
+const genreController = require('../controllers/genre.controller');
+const screeningController = require('../controllers/screening.controller');
+const theaterController = require('../controllers/theater.controller');
+const seatController = require('../controllers/seat.controller');
+const ticketController = require('../controllers/ticket.controller');
+const paymentController = require('../controllers/payment.controller');
+const cinemaController = require('../controllers/cinema.controller');
 // const { createMovie, updateMovie, deleteMovie } = require('../controllers/admin.controller');
 const router = express.Router();
 
-// Route để admin đăng ký nhân viên (staff) hoặc admin
 // Chỉ admin (role_id = 1) mới có quyền truy cập
+//Quản lý người dùng
+     // Route để admin đăng ký nhân viên (staff) hoặc admin
 router.post('/register-staff', protect, restrictTo(1), registerStaff);
-
-// Route để admin lấy danh sách tất cả người dùng
+    // Route để admin lấy danh sách tất cả người dùng
 router.get('/users', protect, restrictTo(1), getAllUsers);
-
-// Route để admin lấy thông tin chi tiết của một người dùng theo ID
+    // Route để admin lấy thông tin chi tiết của một người dùng theo ID
 router.get('/users/:id', protect, restrictTo(1), getUserById);
-
-// Route để admin cập nhật thông tin của một người dùng
+    // Route để admin cập nhật thông tin của một người dùng
 router.put('/users/:id', protect, restrictTo(1), updateUser);
-
-// Route để admin xóa người dùng
+    // Route để admin xóa người dùng
 router.delete('/users/:id', protect, restrictTo(1), deleteUser);
-// Route tạo phim (chỉ admin hoặc staff có thể truy cập)
-// router.post('/movie', protect, restrictTo('admin', 'staff'), createMovie);
 
-// Route cập nhật phim (chỉ admin có thể truy cập)
-// router.patch('/movie/:id', protect, restrictTo('admin'), updateMovie);
 
-// Route xóa phim (chỉ admin có thể truy cập)
-// router.delete('/movie/:id', protect, restrictTo('admin'), deleteMovie);
+// Quản lý phim
+router.post('/movies', protect, restrictTo(1), movieController.createMovie);
+router.put('/movies/:id', protect, restrictTo(1), movieController.updateMovie);
+router.delete('/movies/:id', protect, restrictTo(1), movieController.deleteMovie);
+
+
+// Quản lý thể loại phim
+router.post('/genres', protect, restrictTo(1), genreController.createGenre);
+router.put('/genres/:id', protect, restrictTo(1), genreController.updateGenre);
+router.delete('/genres/:id', protect, restrictTo(1), genreController.deleteGenre);
+
+// Quản lý suất chiếu
+router.post('/screenings', protect, restrictTo(1), screeningController.createScreening);
+router.put('/screenings/:id', protect, restrictTo(1), screeningController.updateScreening);
+router.delete('/screenings/:id', protect, restrictTo(1), screeningController.deleteScreening);
+
+// Quản lý phòng chiếu
+router.post('/theaters', protect, restrictTo(1), theaterController.createTheater);
+router.put('/theaters/:id', protect, restrictTo(1), theaterController.updateTheater);
+router.delete('/theaters/:id', protect, restrictTo(1), theaterController.deleteTheater);
+
+// Quản lý rạp chiếu phim
+router.post('/cinemas', protect, restrictTo(1), cinemaController.createCinema);
+router.put('/cinemas/:id', protect, restrictTo(1), cinemaController.updateCinema);
+router.delete('/cinemas/:id', protect, restrictTo(1), cinemaController.deleteCinema);
+router.get('/cinemas', protect, restrictTo(1), cinemaController.getCinemas);
+
+// Quản lý ghế ngồi
+router.post('/seats', protect, restrictTo(1), seatController.createSeat);
+router.put('/seats/:id', protect, restrictTo(1), seatController.updateSeat);
+router.delete('/seats/:id', protect, restrictTo(1), seatController.deleteSeat);
+
+// Quản lý vé
+// router.get('/tickets', protect, restrictTo(1), ticketController.getTickets);
+
+// Quản lý hóa đơn
+router.get('/payments', protect, restrictTo(1), paymentController.getPayments);
+
+// Thống kê doanh thu
+router.get('/revenue', protect, restrictTo(1),getRevenue);
+
 
 module.exports = router;
