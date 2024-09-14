@@ -3,7 +3,7 @@ const router = express.Router();
 const ticketController = require('../controllers/ticket.controller');
 const movieController = require('../controllers/movie.controller');
 const screeningController = require('../controllers/screening.controller');
-const { protect, restrictTo } = require('../middlewares/authMiddleware');
+const { protect, restrictTo } = require('../middleware/authMiddleware');
 
 // Chỉ khách hàng (role_id = 3) được truy cập các route này
 

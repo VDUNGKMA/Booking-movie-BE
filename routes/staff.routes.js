@@ -4,7 +4,7 @@ const ticketController = require('../controllers/ticket.controller');
 const seatController = require('../controllers/seat.controller');
 const screeningController = require('../controllers/screening.controller');
 const cinemaController = require('../controllers/cinema.controller');
-const { protect, restrictTo } = require('../middlewares/authMiddleware');
+const { protect, restrictTo } = require('../middleware/authMiddleware');
 
 // Chỉ nhân viên (role_id = 2) mới được truy cập
 

@@ -17,6 +17,7 @@ const seatController = require('../controllers/seat.controller');
 const ticketController = require('../controllers/ticket.controller');
 const paymentController = require('../controllers/payment.controller');
 const cinemaController = require('../controllers/cinema.controller');
+const seatCategoryController = require('../controllers/seatcategory.controller');
 // const { createMovie, updateMovie, deleteMovie } = require('../controllers/admin.controller');
 const router = express.Router();
 
@@ -75,5 +76,13 @@ router.get('/payments', protect, restrictTo(1), paymentController.getPayments);
 // Thống kê doanh thu
 router.get('/revenue', protect, restrictTo(1),getRevenue);
 
+// Thêm danh mục ghế ngồi
+router.post('/seat-categories', protect, restrictTo(1), seatCategoryController.createSeatCategory);
+
+// Sửa danh mục ghế ngồi
+router.put('/seat-categories/:id', protect, restrictTo(1), seatCategoryController.updateSeatCategory);
+
+// Xóa danh mục ghế ngồi
+router.delete('/seat-categories/:id', protect, restrictTo(1), seatCategoryController.deleteSeatCategory);
 
 module.exports = router;
