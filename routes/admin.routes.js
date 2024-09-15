@@ -18,29 +18,34 @@ const ticketController = require('../controllers/ticket.controller');
 const paymentController = require('../controllers/payment.controller');
 const cinemaController = require('../controllers/cinema.controller');
 const seatCategoryController = require('../controllers/seatcategory.controller');
+const { upload } = require('../config/cloudinary'); // Import middleware upload từ cloudinary.js
+
 // const { createMovie, updateMovie, deleteMovie } = require('../controllers/admin.controller');
 const router = express.Router();
 
 // Chỉ admin (role_id = 1) mới có quyền truy cập
 //Quản lý người dùng
-     // Route để admin đăng ký nhân viên (staff) hoặc admin
+// Route để admin đăng ký nhân viên (staff) hoặc admin
 router.post('/register-staff', protect, restrictTo(1), registerStaff);
-    // Route để admin lấy danh sách tất cả người dùng
+// Route để admin lấy danh sách tất cả người dùng
 router.get('/users', protect, restrictTo(1), getAllUsers);
-    // Route để admin lấy thông tin chi tiết của một người dùng theo ID
+
+// Route để admin lấy thông tin chi tiết của một người dùng theo ID
 router.get('/users/:id', protect, restrictTo(1), getUserById);
-    // Route để admin cập nhật thông tin của một người dùng
+// Route để admin cập nhật thông tin của một người dùng
 router.put('/users/:id', protect, restrictTo(1), updateUser);
-    // Route để admin xóa người dùng
+// Route để admin xóa người dùng
 router.delete('/users/:id', protect, restrictTo(1), deleteUser);
 
 
 // Quản lý phim
-router.post('/movies', protect, restrictTo(1), movieController.createMovie);
+// router.post('/movies', protect, restrictTo(1), movieController.createMovie);
+// Route để tải lên poster và video trailer khi tạo phim
+router.post('/movies', upload.fields([{ name: 'poster', maxCount: 1 }, { name: 'trailer', maxCount: 1 }]), movieController.createMovie);
 router.put('/movies/:id', protect, restrictTo(1), movieController.updateMovie);
-router.delete('/movies/:id', protect, restrictTo(1), movieController.deleteMovie);
+router.delete('/movie', protect, restrictTo(1), movieController.deleteMovie);
+router.get('/get-all-movies', movieController.getAllMovies);
 
-    
 // Quản lý thể loại phim
 router.post('/genres', protect, restrictTo(1), genreController.createGenre);
 router.put('/genres/:id', protect, restrictTo(1), genreController.updateGenre);
@@ -74,7 +79,7 @@ router.delete('/seats/:id', protect, restrictTo(1), seatController.deleteSeat);
 router.get('/payments', protect, restrictTo(1), paymentController.getPayments);
 
 // Thống kê doanh thu
-router.get('/revenue', protect, restrictTo(1),getRevenue);
+router.get('/revenue', protect, restrictTo(1), getRevenue);
 
 // Thêm danh mục ghế ngồi
 router.post('/seat-categories', protect, restrictTo(1), seatCategoryController.createSeatCategory);

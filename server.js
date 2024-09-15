@@ -1,6 +1,7 @@
 // server.js
 const express = require('express');
 const dotenv = require('dotenv');
+const bodyParser = require('body-parser'); // Đảm bảo body-parser đã được nhập
 const cors = require('cors');  // Import middleware CORS
 const session = require('express-session');
 const sequelize = require('./config/database'); // Kết nối Sequelize
@@ -17,22 +18,15 @@ const app = express();
 dotenv.config();
 
 
-// Cấu hình session trước khi định nghĩa các route
-app.use(session({
-    secret: 'fH3vJ*8$&q9g!2@j#W7xX%Y8nQm',
-    resave: false,
-    saveUninitialized: true,
-    cookie: {
-        secure: false, // Đặt thành true nếu bạn sử dụng HTTPS
-        httpOnly: true,
-        maxAge: 1000 * 60 * 30 // Ví dụ: 30 phút
-    }
-}));
 // Cấu hình CORS để cho phép truy cập từ frontend
 app.use(cors({
     origin: process.env.URL_FRONTEND,  // Cho phép frontend từ localhost:3001 (nếu frontend React chạy trên cổng này)
     credentials: true                 // Cho phép gửi cookie, token, thông tin xác thực
 }));
+
+// Đặt body-parser để xử lý các tệp lớn hơn (cho cả JSON và URL encoded)
+app.use(bodyParser.json({ limit: '1000mb' }));   // Tăng giới hạn cho các payload JSON
+app.use(bodyParser.urlencoded({ limit: '1000mb', extended: true })); // Tăng giới hạn cho payload dạng form-data
 // Middleware để xử lý JSON
 app.use(express.json());
 // Định nghĩa các route cho API
