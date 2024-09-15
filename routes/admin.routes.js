@@ -40,7 +40,7 @@ router.post('/movies', protect, restrictTo(1), movieController.createMovie);
 router.put('/movies/:id', protect, restrictTo(1), movieController.updateMovie);
 router.delete('/movies/:id', protect, restrictTo(1), movieController.deleteMovie);
 
-
+    
 // Quản lý thể loại phim
 router.post('/genres', protect, restrictTo(1), genreController.createGenre);
 router.put('/genres/:id', protect, restrictTo(1), genreController.updateGenre);

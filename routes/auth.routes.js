@@ -2,7 +2,7 @@
 const express = require('express');
 // const { register, login } = require('../controllers/auth.controller');
 const { registerCustomer, login } = require('../controllers/auth.controller');
-const { forgotPassword, resetPassword } = require('../controllers/auth.controller');
+const { forgotPassword, verifyOTP, resetPassword } = require('../controllers/auth.controller');
 
 const router = express.Router();
 
@@ -17,6 +17,8 @@ router.post('/login', login);
 // Route để gửi email yêu cầu đặt lại mật khẩu
 router.post('/forgotPassword', forgotPassword);
 
+router.post('/verifyOTP', verifyOTP);
+
 // Route để đặt lại mật khẩu bằng token
-router.patch('/resetPassword/:token', resetPassword);
+router.post('/resetPassword', resetPassword);
 module.exports = router;

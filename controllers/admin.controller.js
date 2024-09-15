@@ -259,9 +259,8 @@ exports.deleteUser = async (req, res) => {
 
         await user.destroy();
 
-        res.status(204).json({
-            status: 'success',
-            data: null
+        res.status(200).json({
+            status: 'success'
         });
     } catch (error) {
         res.status(500).json({
