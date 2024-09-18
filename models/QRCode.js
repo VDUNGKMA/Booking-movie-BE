@@ -8,7 +8,7 @@ const QRCode = sequelize.define('QRCode', {
         autoIncrement: true
     },
     code: {
-        type: DataTypes.STRING,
+        type: DataTypes.TEXT,
         allowNull: false
     },
     ticket_id: {

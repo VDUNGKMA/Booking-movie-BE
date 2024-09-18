@@ -2,6 +2,8 @@
 const Ticket = require('../models/Ticket');
 const Seat = require('../models/Seat');
 const Screening = require('../models/Screening');
+const QR = require('qrcode');
+const QRCode = require('../models/QRCode');
 
 exports.getTicket = async (req, res) => {
     try {
@@ -83,9 +85,30 @@ exports.bookTicket = async (req, res) => {
         seat.status = 'booked';
         await seat.save();
 
-        res.status(201).json({
-            status: 'success',
-            data: { ticket }
+        // Tạo dữ liệu mã QR
+        const ticketInfo = `Ticket ID: ${ticket.id}, Movie: ${screening.movie_id}, Seat: ${seat_id}, Price: ${price}, Time: ${screening.startTime}`;
+
+
+        // Tạo mã QR code dưới dạng base64
+        QR.toDataURL(ticketInfo, async (err, url) => {
+            if (err) {
+                return res.status(500).json({ error: 'Failed to generate QR code' });
+            }
+
+            // Lưu mã QR vào cơ sở dữ liệu (liên kết với bảng Tickets)
+            const qrCode = await QRCode.create({
+                code: url,          // Base64 của mã QR
+                ticket_id: ticket.id  // Liên kết với vé đã đặt
+            });
+
+            // Trả về thông tin vé và mã QR
+            res.status(201).json({
+                status: 'success',
+                data: {
+                    ticket,
+                    qrCode: qrCode.code  // Base64 mã QR trả về cho client
+                }
+            });
         });
     } catch (error) {
         res.status(500).json({
