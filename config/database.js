@@ -7,7 +7,12 @@ const dbConfig = config[env]; // Lấy cấu hình tương ứng
 // Kết nối với cơ sở dữ liệu
 const sequelize = new Sequelize(dbConfig.database, dbConfig.username, dbConfig.password, {
     host: dbConfig.host,
-    dialect: dbConfig.dialect
+    dialect: dbConfig.dialect,
+    timezone: '+07:00',
+    dialectOptions: {
+        useUTC: false,
+        dateStrings: true
+    }
 });
 
 module.exports = sequelize;

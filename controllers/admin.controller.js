@@ -92,62 +92,132 @@ const User = require('../models/user');
 const  Payment  = require('../models/Payment');
 
 // controllers/admin.controller.js
+const { cloudinary } = require('../config/cloudinary');
+
+// exports.registerStaff = async (req, res) => {
+//     try {
+//         const { username, email, password, phone_number, role_id } = req.body;
+//         console.log('Request body:', req.body);
+//         console.log('Uploaded file:', req.file);
+//         // Chỉ admin mới có thể đăng ký cho nhân viên hoặc admin
+//         if (req.user.role_id !== 1) {
+//             return res.status(403).json({
+//                 status: 'fail',
+//                 message: 'You do not have permission to create this user'
+//             });
+//         }
+//         // Kiểm tra nếu email đã tồn tại
+//         const existingUser = await User.findOne({ where: { email } });
+//         if (existingUser) {
+//             return res.status(400).json({
+//                 status: 'fail',
+//                 message: 'Email is already in use.'
+//             });
+//         }
+//         console.log("check check1",existingUser)
+
+//         // Chỉ cho phép tạo nhân viên (role_id = 2) hoặc admin (role_id = 1)
+//         if (![1, 2].includes(role_id)) {
+//             return res.status(400).json({
+//                 status: 'fail',
+//                 message: 'Invalid role. Only "admin" or "staff" roles are allowed.'
+//             });
+//         }
+
+//         // Lấy URL của hình ảnh từ Cloudinary
+//         // const image_url = req.file ? req.file.path : null;
+//         const image_url = req.files['image'] ? req.files['image'][0].path : null;
+//         // Tạo nhân viên mới với hình ảnh URL
+//         const newUser = await User.create({
+//             username,
+//             email,
+//             password,
+//             phone_number,
+//             role_id,
+//             image: image_url,
+//         });
+//         console.log("check new user",newUser)
+//         res.status(201).json({
+//             status: 'success',
+//             data: {
+//                 user: newUser
+//             }
+//         });
+//     } catch (error) {
+//         res.status(400).json({
+//             status: 'fail',
+//             message: error.message
+//         });
+//     }
+// };
 exports.registerStaff = async (req, res) => {
     try {
         const { username, email, password, phone_number, role_id } = req.body;
+        const image_url = req.files['image'] ? req.files['image'][0].path : null;
 
-        // Chỉ admin mới có thể đăng ký cho nhân viên hoặc admin
+        // Kiểm tra quyền hạn và email tồn tại
         if (req.user.role_id !== 1) {
-            return res.status(403).json({
-                status: 'fail',
-                message: 'You do not have permission to create this user'
-            });
+            return res.status(403).json({ status: 'fail', message: 'You do not have permission to create this user' });
         }
-
-        // Kiểm tra nếu email đã tồn tại
         const existingUser = await User.findOne({ where: { email } });
         if (existingUser) {
-            return res.status(400).json({
-                status: 'fail',
-                message: 'Email is already in use.'
-            });
+            return res.status(400).json({ status: 'fail', message: 'Email is already in use.' });
         }
 
-        // Chỉ cho phép tạo nhân viên (role_id = 2) hoặc admin (role_id = 1)
-        if (![1, 2].includes(role_id)) {
-            return res.status(400).json({
-                status: 'fail',
-                message: 'Invalid role. Only "admin" or "staff" roles are allowed.'
-            });
-        }
-
-        // Tạo nhân viên mới
         const newUser = await User.create({
             username,
             email,
             password,
             phone_number,
-            role_id // Lưu role_id thay vì role_name
+            role_id,
+            image: image_url,
         });
-
-        res.status(201).json({
-            status: 'success',
-            data: {
-                user: newUser
-            }
-        });
+        res.status(201).json({ status: 'success', data: { user: newUser } });
     } catch (error) {
-        res.status(400).json({
-            status: 'fail',
-            message: error.message
-        });
+        res.status(400).json({ status: 'fail', message: error.message });
     }
 };
+
 // Controller lấy tất cả người dùng
 exports.getAllUsers = async (req, res) => {
     try {
         const users = await User.findAll({
-            attributes: ['id', 'username', 'email', 'phone_number', 'role_id']
+            attributes: ['id', 'username', 'email', 'phone_number', 'role_id','image']
+        });
+
+        res.status(200).json({
+            status: 'success',
+            results: users.length,
+            data: {
+                users
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 'error',
+            message: error.message
+        });
+    }
+};
+// controllers/admin.controller.js
+
+// Controller lấy tất cả người dùng theo role_id
+exports.getUsersByRole = async (req, res) => {
+    try {
+        const roleId = parseInt(req.query.role_id, 10);
+
+        // Kiểm tra nếu role_id hợp lệ
+        if (isNaN(roleId) || roleId <= 0) {
+            return res.status(400).json({
+                status: 'fail',
+                message: 'Invalid role_id'
+            });
+        }
+
+        // Lấy người dùng theo role_id
+        const users = await User.findAll({
+            where: { role_id: roleId },
+            attributes: ['id', 'username', 'email', 'phone_number', 'role_id','image']
         });
 
         res.status(200).json({
@@ -171,7 +241,7 @@ exports.getUserById = async (req, res) => {
         const userId = req.params.id;
 
         const user = await User.findByPk(userId, {
-            attributes: ['id', 'username', 'email', 'phone_number', 'role_id']
+            attributes: ['id', 'username', 'email', 'phone_number', 'role_id', 'image']
         });
 
         if (!user) {
@@ -199,12 +269,13 @@ exports.updateUser = async (req, res) => {
     try {
         const userId = req.params.id;
         const { username, email, phone_number, role_id } = req.body;
+        const image_url = req.files && req.files['image'] ? req.files['image'][0].path : null;
 
         // Chỉ admin mới có thể cập nhật role_id
-        if (role_id && ![1, 2, 3].includes(role_id)) { // Giả sử role_id 3 là customer
-            return res.status(400).json({
+        if (req.user.role_id !== 1) {
+            return res.status(403).json({
                 status: 'fail',
-                message: 'Invalid role_id.'
+                message: 'You do not have permission to update this user'
             });
         }
 
@@ -216,14 +287,30 @@ exports.updateUser = async (req, res) => {
             });
         }
 
-        // Cập nhật thông tin
+        // Kiểm tra xem email có trùng với user khác không (ngoại trừ user hiện tại)
+        if (email && email !== user.email) {
+            const existingUser = await User.findOne({ where: { email } });
+            if (existingUser) {
+                return res.status(400).json({ status: 'fail', message: 'Email is already in use.' });
+            }
+        }
+
+        // Cập nhật thông tin người dùng
         user.username = username || user.username;
         user.email = email || user.email;
         user.phone_number = phone_number || user.phone_number;
-        if (role_id) user.role_id = role_id;
+
+        // Cập nhật hình ảnh nếu có
+        if (image_url) {
+            user.image = image_url;
+        }
+
+        // Cập nhật role_id nếu có (chỉ admin mới được cập nhật)
+        if (role_id) {
+            user.role_id = role_id;
+        }
 
         await user.save();
-
         res.status(200).json({
             status: 'success',
             data: {
@@ -232,17 +319,19 @@ exports.updateUser = async (req, res) => {
                     username: user.username,
                     email: user.email,
                     phone_number: user.phone_number,
-                    role_id: user.role_id
+                    role_id: user.role_id,
+                    image: user.image
                 }
             }
         });
     } catch (error) {
-        res.status(500).json({
-            status: 'error',
+        res.status(400).json({
+            status: 'fail',
             message: error.message
         });
     }
 };
+
 
 // Controller xóa người dùng
 exports.deleteUser = async (req, res) => {

@@ -3,9 +3,9 @@ const User = require('../models/user');
 const bcrypt = require('bcryptjs');
 
 // Lấy thông tin người dùng hiện tại
-exports.getMe = async (req, res) => {
+exports.getCustomerById = async (req, res) => {
     try {
-        const user = await User.findByPk(req.user.id);
+        const user = await User.findByPk(req.params.id);
         if (!user) {
             return res.status(404).json({
                 status: 'fail',

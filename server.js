@@ -20,7 +20,9 @@ dotenv.config();
 
 // Cấu hình CORS để cho phép truy cập từ frontend
 app.use(cors({
-    origin: process.env.URL_FRONTEND,  // Cho phép frontend từ localhost:3001 (nếu frontend React chạy trên cổng này)
+    origin: [process.env.URL_FRONTEND,
+        'http://192.168.1.119:5000',
+        'http://10.0.2.2:5000',],  // Cho phép frontend từ localhost:3001 (nếu frontend React chạy trên cổng này)
     credentials: true                 // Cho phép gửi cookie, token, thông tin xác thực
 }));
 
@@ -34,7 +36,7 @@ app.use('/api/auth', authRoutes); // Route cho đăng ký, đăng nhập
 app.use('/api/admin', adminRoutes); // Route cho các hành động của admin
 app.use('/api/staff', staffRoutes);
 app.use('/api/customer', customerRoutes);
-app.get('/api/user/me', protect, getMe); // Route lấy thông tin người dùng với bảo vệ JWT
+// app.get('/api/user/me', protect, getMe); // Route lấy thông tin người dùng với bảo vệ JWT
 
 // Khởi tạo kết nối với cơ sở dữ liệu và đồng bộ model
 sequelize.sync({ alter: true }).then(() => {

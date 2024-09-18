@@ -7,7 +7,8 @@ const {
     getUserById,
     updateUser,
     deleteUser,
-    getRevenue
+    getRevenue,
+    getUsersByRole
 } = require('../controllers/admin.controller');
 const movieController = require('../controllers/movie.controller');
 const genreController = require('../controllers/genre.controller');
@@ -26,14 +27,15 @@ const router = express.Router();
 // Chỉ admin (role_id = 1) mới có quyền truy cập
 //Quản lý người dùng
 // Route để admin đăng ký nhân viên (staff) hoặc admin
-router.post('/register-staff', protect, restrictTo(1), registerStaff);
+router.post('/register-staff', upload.fields([{ name: 'image', maxCount: 1 }]), protect, restrictTo(1), registerStaff);
 // Route để admin lấy danh sách tất cả người dùng
 router.get('/users', protect, restrictTo(1), getAllUsers);
 
+router.get('/users-by-role', getUsersByRole);
 // Route để admin lấy thông tin chi tiết của một người dùng theo ID
 router.get('/users/:id', protect, restrictTo(1), getUserById);
 // Route để admin cập nhật thông tin của một người dùng
-router.put('/users/:id', protect, restrictTo(1), updateUser);
+router.put('/users/:id', upload.fields([{ name: 'image', maxCount: 1 }]), protect, restrictTo(1), updateUser);
 // Route để admin xóa người dùng
 router.delete('/users/:id', protect, restrictTo(1), deleteUser);
 

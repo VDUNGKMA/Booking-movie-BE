@@ -4,8 +4,10 @@ const ticketController = require('../controllers/ticket.controller');
 const movieController = require('../controllers/movie.controller');
 const screeningController = require('../controllers/screening.controller');
 const { protect, restrictTo } = require('../middleware/authMiddleware');
+const userController = require('../controllers/user.controller');
 
 // Chỉ khách hàng (role_id = 3) được truy cập các route này
+router.get('/user/:id', userController.getCustomerById);
 
 // Route liên quan đến Phim
 router.get('/movies', protect, restrictTo(3), movieController.getAllMovies);
