@@ -38,3 +38,12 @@ exports.deleteGenre = async (req, res) => {
         res.status(400).json({ status: 'fail', message: error.message });
     }
 };
+// Lấy tất cả thể loại phim
+exports.getAllGenres = async (req, res) => {
+    try {
+        const genres = await Genre.findAll();
+        res.status(200).json({ status: 'success', data: genres });
+    } catch (error) {
+        res.status(400).json({ status: 'fail', message: error.message });
+    }
+};

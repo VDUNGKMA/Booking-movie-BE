@@ -21,6 +21,10 @@ Genre.associate = (models) => {
     Genre.belongsToMany(models.Movie, {
         through: 'MovieGenres',
         foreignKey: 'genre_id',
+        otherKey: 'movie_id',
+        as: 'movies', // Thêm alias ở đây nếu cần
+        onDelete: 'CASCADE', // Thêm dòng này
+        onUpdate: 'CASCADE',
     });
 };
 

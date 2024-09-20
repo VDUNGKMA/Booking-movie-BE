@@ -8,10 +8,11 @@ const userController = require('../controllers/user.controller');
 
 // Chỉ khách hàng (role_id = 3) được truy cập các route này
 router.get('/user/:id', userController.getCustomerById);
-
+// Thêm route cho việc đổi mật khẩu
+router.post('/change-password', userController.changePassword);
 // Route liên quan đến Phim
 router.get('/movies', protect, restrictTo(3), movieController.getAllMovies);
-router.get('/movies/:id', protect, restrictTo(3), movieController.getMovie);
+// router.get('/movies/:id', protect, restrictTo(3), movieController.getMovie);
 
 // Route liên quan đến Suất Chiếu
 router.get('/screenings', protect, restrictTo(3), screeningController.getScreeningsByMovie);
