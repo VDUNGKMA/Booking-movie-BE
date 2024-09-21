@@ -11,6 +11,7 @@ const {
     getUsersByRole,
 } = require('../controllers/admin.controller');
 const movieController = require('../controllers/movie.controller');
+const showtimeController = require('../controllers/showtime.controller')
 const genreController = require('../controllers/genre.controller');
 const screeningController = require('../controllers/screening.controller');
 const theaterController = require('../controllers/theater.controller');
@@ -97,6 +98,21 @@ router.get('/genres', genreController.getAllGenres);
 router.post('/screenings', protect, restrictTo(1), screeningController.createScreening);
 router.put('/screenings/:id', protect, restrictTo(1), screeningController.updateScreening);
 router.delete('/screenings/:id', protect, restrictTo(1), screeningController.deleteScreening);
+// Route lấy danh sách suất chiếu với phân trang
+router.get('/theaters/:theaterId/showtimes', showtimeController.getShowtimes);
+
+// Route lấy chi tiết một suất chiếu
+router.get('/showtimes/:showtimeId', showtimeController.getShowtimeById);
+router.get('/theaters/:theaterId/get-showtimes', showtimeController.getShowtimesByTheater)
+// Route tạo mới một suất chiếu
+router.post('/theaters/:theaterId/showtimes', protect, restrictTo(1), showtimeController.createShowtime);
+
+// Route cập nhật một suất chiếu
+router.put('/showtimes/:showtimeId', protect, restrictTo(1), showtimeController.updateShowtime);
+
+// Route xóa một suất chiếu
+router.delete('/showtimes/:showtimeId', protect, restrictTo(1), showtimeController.deleteShowtime);
+
 
 // Quản lý phòng chiếu
 router.post('/cinemas/:cinemaId/theaters', protect, restrictTo(1), theaterController.createTheater);

@@ -28,7 +28,7 @@ exports.getCustomerById = async (req, res) => {
 };
 exports.changePassword = async (req, res) => {
     try {
-        const userId = req.user.id; // Lấy userId từ token hoặc session
+        const {userId} = req.params; // Lấy userId từ token hoặc session
         const { currentPassword, newPassword } = req.body;
 
         // Lấy thông tin người dùng

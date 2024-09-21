@@ -1,0 +1,50 @@
+// models/showtime.js
+
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
+const Theater = require('./Theater');
+
+const Showtime = sequelize.define('Showtime', {
+    theater_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+    },
+    movie_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+    },
+    start_time: {
+        type: DataTypes.DATE,
+        allowNull: false,
+    },
+    end_time: {
+        type: DataTypes.DATE,
+        allowNull: false,
+    },
+    status: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: 'Scheduled',
+    },
+}, {
+    tableName: 'Showtimes',
+    timestamps: true,
+});
+
+Showtime.associate = function (models) {
+    Showtime.belongsTo(models.Theater, {
+        foreignKey: 'theater_id',
+        as: 'theater',
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+    });
+
+    Showtime.belongsTo(models.Movie, {
+        foreignKey: 'movie_id',
+        as: 'movie',
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+    });
+};
+
+module.exports = Showtime;
