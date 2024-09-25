@@ -2,6 +2,9 @@
 const Ticket = require('../models/Ticket');
 const Seat = require('../models/Seat');
 const Screening = require('../models/Screening');
+const Cinema = require('../models/Cinema');
+const Movie = require('../models/movie');
+const Theater = require('../models/Theater');
 const QR = require('qrcode');
 const QRCode = require('../models/QRCode');
 
@@ -49,6 +52,48 @@ exports.updateTicketStatus = async (req, res) => {
     }
 };
 
+//đặt vé
+
+async function generateTicketInfo(ticketId) {
+    const ticket = await Ticket.findByPk(ticketId, {
+        include: [
+            {
+                model: Screening,
+                include: [
+                    {
+                        model: Movie,
+                        attributes: ['title']
+                    },
+                    {
+                        model: Cinema,
+                        attributes: ['name', 'location']
+                    },
+                    {
+                        model: Theater,
+                        attributes: ['name']
+                    }
+                ]
+            },
+            {
+                model: Seat,
+                attributes: ['seat_number']
+            }
+        ],
+    });
+
+    if (ticket) {
+        return {
+            movieName: ticket.Screening?.Movie?.title || 'N/A',
+            theaterName: ticket.Screening?.Theater?.name || 'N/A',
+            cinemaName: ticket.Screening?.Cinema?.name || 'N/A',
+            location: ticket.Screening?.Cinema?.location || 'N/A',
+            seatName: ticket.Seat?.seat_number || 'N/A' 
+        };
+    }
+    // Thông báo khi không tìm thấy vé
+    console.error(`Ticket with ID ${ticketId} not found.`);
+    return null;
+}
 
 exports.bookTicket = async (req, res) => {
     try {
@@ -86,11 +131,12 @@ exports.bookTicket = async (req, res) => {
         await seat.save();
 
         // Tạo dữ liệu mã QR
-        const ticketInfo = `Ticket ID: ${ticket.id}, Movie: ${screening.movie_id}, Seat: ${seat_id}, Price: ${price}, Time: ${screening.startTime}`;
+        const ticketInfo = await generateTicketInfo(ticket.id);
+        console.log('Ticket Info:', ticketInfo); // Kiểm tra giá trị
 
 
         // Tạo mã QR code dưới dạng base64
-        QR.toDataURL(ticketInfo, async (err, url) => {
+        QR.toDataURL(JSON.stringify(ticketInfo), async (err, url) => {
             if (err) {
                 return res.status(500).json({ error: 'Failed to generate QR code' });
             }
@@ -117,6 +163,8 @@ exports.bookTicket = async (req, res) => {
         });
     }
 };
+
+
 exports.getCustomerTickets = async (req, res) => {
     try {
         const tickets = await Ticket.findAll({

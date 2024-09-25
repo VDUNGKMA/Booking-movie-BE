@@ -67,8 +67,8 @@ Ticket.associate = (models) => {
     // Quan hệ n-1 giữa Tickets và Seats
     Ticket.belongsTo(models.Seat, { foreignKey: 'seat_id' });
 
-    // Quan hệ 1-nhiều giữa Tickets và Payments
-    Ticket.hasMany(models.Payment, { foreignKey: 'ticket_id' });
+    // Quan hệ n-nhiều giữa Tickets và Payments
+    Ticket.belongsToMany(Payment, { through: 'PaymentTickets', foreignKey: 'ticket_id' });
 
     // Quan hệ 1-1 giữa Tickets và QRCode
     Ticket.hasOne(models.QRCode, { foreignKey: 'ticket_id' });

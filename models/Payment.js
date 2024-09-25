@@ -27,14 +27,14 @@ const Payment = sequelize.define('Payment', {
             key: 'id'
         }
     },
-    ticket_id: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        references: {
-            model: 'Tickets', // Model tham chiếu
-            key: 'id'
-        }
-    },
+    // ticket_id: {
+    //     type: DataTypes.INTEGER,
+    //     allowNull: false,
+    //     references: {
+    //         model: 'Tickets', // Model tham chiếu
+    //         key: 'id'
+    //     }
+    // },
     createdAt: {
         type: DataTypes.DATE,
         allowNull: false,
@@ -53,7 +53,7 @@ Payment.associate = (models) => {
     // Quan hệ n-1 giữa Payments và Users
     Payment.belongsTo(models.User, { foreignKey: 'user_id' });
 
-    // Quan hệ n-1 giữa Payments và Tickets
-    Payment.belongsTo(models.Ticket, { foreignKey: 'ticket_id' });
+    // Quan hệ n-n giữa Payments và Tickets
+    Payment.belongsToMany(Ticket, { through: 'PaymentTickets', foreignKey: 'payment_id' });
 };
 module.exports = Payment;
