@@ -70,7 +70,7 @@ Movie.associate = (models) => {
     });
 
     // Quan hệ 1-nhiều giữa Movies và Screenings
-    Movie.hasMany(models.Screening, { foreignKey: 'movie_id' });
+    // Movie.hasMany(models.Screening, { foreignKey: 'movie_id' });
 };
 
 module.exports = Movie;

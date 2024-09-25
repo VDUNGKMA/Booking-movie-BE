@@ -64,13 +64,16 @@ User.associate = (models) => {
     User.belongsToMany(models.Ticket, {
         through: 'UserTickets',
         foreignKey: 'user_id',
+        as: 'tickets',
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
     });
 
-    // Quan hệ nhiều-nhiều giữa Users và Screenings
-    User.belongsToMany(models.Screening, {
-        through: 'UserScreenings',
-        foreignKey: 'user_id',
-    });
+    // // Quan hệ nhiều-nhiều giữa Users và Screenings
+    // User.belongsToMany(models.Screening, {
+    //     through: 'UserScreenings',
+    //     foreignKey: 'user_id',
+    // });
 
     // Quan hệ 1-nhiều giữa Users và Payments
     User.hasMany(models.Payment, { foreignKey: 'user_id' });

@@ -41,12 +41,12 @@ Cinema.associate = (models) => {
         onUpdate: 'CASCADE',
     });
 
-    // Quan hệ 1-nhiều giữa Cinema và Screenings
-    Cinema.hasMany(models.Screening, {
-        foreignKey: 'cinema_id',
-        onDelete: 'CASCADE', // Thêm dòng này
-        onUpdate: 'CASCADE',
-    });
+    // // Quan hệ 1-nhiều giữa Cinema và Screenings
+    // Cinema.hasMany(models.Screening, {
+    //     foreignKey: 'cinema_id',
+    //     onDelete: 'CASCADE', // Thêm dòng này
+    //     onUpdate: 'CASCADE',
+    // });
 };
 
 module.exports = Cinema;

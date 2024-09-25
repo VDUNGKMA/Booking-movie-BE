@@ -20,6 +20,7 @@ const ticketController = require('../controllers/ticket.controller');
 const paymentController = require('../controllers/payment.controller');
 const cinemaController = require('../controllers/cinema.controller');
 const seatCategoryController = require('../controllers/seatcategory.controller');
+const userController = require('../controllers/user.controller')
 const { upload } = require('../config/cloudinary'); // Import middleware upload từ cloudinary.js
 
 const router = express.Router();
@@ -56,7 +57,7 @@ router.put(
 
 // Route để admin xóa người dùng
 router.delete('/users/:id', protect, restrictTo(1), deleteUser);
-
+router.get('/get-users', userController.getUsers );
 // Quản lý phim
 // Route để tạo phim mới, bao gồm upload poster và trailer
 router.post(
@@ -95,24 +96,26 @@ router.delete('/genres/:id', protect, restrictTo(1), genreController.deleteGenre
 router.get('/genres', genreController.getAllGenres);
 
 // Quản lý suất chiếu
-router.post('/screenings', protect, restrictTo(1), screeningController.createScreening);
-router.put('/screenings/:id', protect, restrictTo(1), screeningController.updateScreening);
-router.delete('/screenings/:id', protect, restrictTo(1), screeningController.deleteScreening);
-// Route lấy danh sách suất chiếu với phân trang
-router.get('/theaters/:theaterId/showtimes', showtimeController.getShowtimes);
+// router.post('/screenings', protect, restrictTo(1), screeningController.createScreening);
+// router.put('/screenings/:id', protect, restrictTo(1), screeningController.updateScreening);
+// router.delete('/screenings/:id', protect, restrictTo(1), screeningController.deleteScreening);
+// // Route lấy danh sách suất chiếu với phân trang
+// router.get('/theaters/:theaterId/showtimes', showtimeController.getShowtimes);
 
-// Route lấy chi tiết một suất chiếu
+// 1. Lấy danh sách suất chiếu với phân trang, sắp xếp và tìm kiếm
+router.get('/showtimes', showtimeController.getShowtimes);
+
+// 2. Lấy một suất chiếu theo ID
 router.get('/showtimes/:showtimeId', showtimeController.getShowtimeById);
-router.get('/theaters/:theaterId/get-showtimes', showtimeController.getShowtimesByTheater)
-// Route tạo mới một suất chiếu
-router.post('/theaters/:theaterId/showtimes', protect, restrictTo(1), showtimeController.createShowtime);
 
-// Route cập nhật một suất chiếu
+// 3. Tạo mới một suất chiếu
+router.post('/showtimes', protect, restrictTo(1), showtimeController.createShowtime);
+
+// 4. Cập nhật một suất chiếu
 router.put('/showtimes/:showtimeId', protect, restrictTo(1), showtimeController.updateShowtime);
 
-// Route xóa một suất chiếu
+// 5. Xóa một suất chiếu
 router.delete('/showtimes/:showtimeId', protect, restrictTo(1), showtimeController.deleteShowtime);
-
 
 // Quản lý phòng chiếu
 router.post('/cinemas/:cinemaId/theaters', protect, restrictTo(1), theaterController.createTheater);
@@ -139,9 +142,20 @@ router.get('/theaters/:theaterId/seats', seatController.getSeatsByTheater);
 // Route lấy danh sách ghế với phân trang cho quản trị viên
 router.get('/theaters/:theaterId/seats/admin', seatController.getSeatsByTheaterAdmin);
 router.patch('/theaters/:theaterId/seats/:seatId/status', seatController.updateSeatStatus);
+// Thêm route để lấy danh sách ghế theo suất chiếu
+router.get('/:showtimeId/seats', seatController.getSeatsByShowtime);
 // Quản lý vé
 // router.get('/tickets', protect, restrictTo(1), ticketController.getTickets);
+router.post('/tickets', ticketController.createTicket);
 
+// Lấy danh sách vé
+router.get('/tickets', ticketController.getTickets);
+
+// Lấy một vé theo ID
+router.get('/tickets/:ticketId', ticketController.getTicketById);
+
+// Hủy vé
+router.patch('/:ticketId/cancel', ticketController.cancelTicket);
 // Quản lý hóa đơn
 router.get('/payments', protect, restrictTo(1), paymentController.getPayments);
 

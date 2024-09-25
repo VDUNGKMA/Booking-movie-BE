@@ -1,6 +1,8 @@
 // controllers/user.controller.js
-const User = require('../models/user');
+const db = require('../models');
+const User = db.User;
 const bcrypt = require('bcryptjs');
+const { Op } = require('sequelize'); // Thêm dòng này để sử dụng toán tử Sequelize
 
 // Lấy thông tin người dùng hiện tại
 exports.getCustomerById = async (req, res) => {
@@ -28,7 +30,7 @@ exports.getCustomerById = async (req, res) => {
 };
 exports.changePassword = async (req, res) => {
     try {
-        const {userId} = req.params; // Lấy userId từ token hoặc session
+        const { userId } = req.params; // Lấy userId từ token hoặc session
         const { currentPassword, newPassword } = req.body;
 
         // Lấy thông tin người dùng
@@ -124,5 +126,58 @@ exports.deleteMe = async (req, res) => {
             status: 'fail',
             message: error.message
         });
+    }
+};
+// **1. Lấy Danh Sách Người Dùng Với Phân Trang, Sắp Xếp và Tìm Kiếm**
+exports.getUsers = async (req, res) => {
+    try {
+        let { page, limit, sortField, sortOrder, search } = req.query;
+
+        // Thiết lập giá trị mặc định
+        page = parseInt(page) || 1;
+        limit = parseInt(limit) || 10;
+        sortField = sortField || 'createdAt';
+        sortOrder = sortOrder ? sortOrder.toUpperCase() : 'DESC';
+        search = search || '';
+
+        const offset = (page - 1) * limit;
+
+        // Xây dựng điều kiện tìm kiếm
+        const whereCondition = {};
+
+        if (search) {
+            whereCondition[Op.or] = [
+                { username: { [Op.like]: `%${search}%` } },
+                { email: { [Op.like]: `%${search}%` } },
+                { role_id: { [Op.like]: `%${search}%` } },
+            ];
+        }
+
+        // Tổng số người dùng thỏa điều kiện
+        const totalUsers = await User.count({
+            where: Object.keys(whereCondition).length > 0 ? whereCondition : {},
+        });
+
+        // Lấy danh sách người dùng
+        const users = await User.findAll({
+            where: Object.keys(whereCondition).length > 0 ? whereCondition : {},
+            order: [[sortField, sortOrder]],
+            limit: limit,
+            offset: offset,
+            attributes: ['id', 'username', 'email', 'role_id', 'createdAt', 'updatedAt'],
+        });
+
+        res.status(200).json({
+            status: 'success',
+            data: {
+                totalUsers,
+                currentPage: page,
+                totalPages: Math.ceil(totalUsers / limit),
+                users,
+            },
+        });
+    } catch (error) {
+        console.error('Error in getUsers:', error);
+        res.status(500).json({ status: 'fail', message: 'Lỗi khi lấy danh sách người dùng.' });
     }
 };

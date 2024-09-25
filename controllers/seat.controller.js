@@ -3,6 +3,8 @@
 const db = require('../models');
 const Seat = db.Seat;
 const Theater = db.Theater;
+const Showtime = db.Showtime;
+const Ticket = db.Ticket;
 const { Op } = require('sequelize'); // Thêm dòng này để sử dụng toán tử Sequelize
 // Định nghĩa mức giá cho mỗi loại ghế
 const seatPrices = {
@@ -287,5 +289,51 @@ exports.getSeatsByTheaterAdmin = async (req, res) => {
     } catch (error) {
         console.error('Error in getSeatsByTheater:', error);
         res.status(500).json({ status: 'fail', message: 'Lỗi khi lấy danh sách ghế ngồi.' });
+    }
+};
+// Lấy danh sách ghế theo suất chiếu
+exports.getSeatsByShowtime = async (req, res) => {
+    try {
+        const { showtimeId } = req.params;
+
+        // Kiểm tra xem suất chiếu có tồn tại không
+        const showtime = await Showtime.findByPk(showtimeId);
+        if (!showtime) {
+            return res.status(404).json({ status: 'fail', message: 'Suất chiếu không tồn tại!' });
+        }
+
+        // Lấy danh sách ghế đã được đặt cho suất chiếu này
+        const bookedSeats = await Ticket.findAll({
+            where: {
+                showtime_id: showtimeId,
+                status: 'Booked',
+            },
+            attributes: ['seat_id'],
+        });
+
+        const bookedSeatIds = bookedSeats.map(ticket => ticket.seat_id);
+
+        // Lấy danh sách tất cả ghế trong phòng chiếu của suất chiếu này
+        const seats = await Seat.findAll({
+            where: {
+                theater_id: showtime.theater_id,
+            },
+            attributes: ['id', 'row', 'number', 'type', 'price'],
+        });
+
+        // Thêm thông tin về trạng thái ghế
+        const seatsWithStatus = seats.map(seat => ({
+            id: seat.id,
+            row: seat.row,
+            number: seat.number,
+            type: seat.type,
+            price: seat.price,
+            status: bookedSeatIds.includes(seat.id) ? 'booked' : 'available',
+        }));
+
+        res.status(200).json({ status: 'success', data: { seats: seatsWithStatus } });
+    } catch (error) {
+        console.error('Error in getSeatsByShowtime:', error);
+        res.status(500).json({ status: 'fail', message: 'Lỗi khi lấy danh sách ghế theo suất chiếu.' });
     }
 };

@@ -3,7 +3,9 @@
 const db = require('../models');
 const Movie = db.Movie;
 const Genre = db.Genre;
-
+const Showtime = db.Showtime
+const Cinema = db.Cinema;
+const Theater = db.Theater
 const { cloudinary } = require('../config/cloudinary');
 
 // Controller để tạo phim và tải ảnh, video lên Cloudinary
@@ -250,3 +252,161 @@ exports.getMovieById = async (req, res) => {
         res.status(500).json({ status: 'fail', message: 'Lỗi máy chủ nội bộ' });
     }
 };
+exports.getCinemasByMovie = async (req, res) => {
+    const { movieId } = req.params;
+
+    try {
+        // Tìm tất cả các suất chiếu cho phim này
+        const showtimes = await Showtime.findAll({
+            where: { movie_id: movieId },
+            include: [
+                {
+                    model: Theater,
+                    as: 'theater',
+                    include: [
+                        {
+                            model: Cinema,
+                            as: 'cinema'
+                        }
+                    ]
+                }
+            ]
+        });
+
+        // Tổ chức dữ liệu theo rạp
+        const cinemasMap = {};
+
+        showtimes.forEach((showtime) => {
+            const cinema = showtime.theater.cinema;
+            if (!cinemasMap[cinema.id]) {
+                cinemasMap[cinema.id] = {
+                    id: cinema.id,
+                    name: cinema.name,
+                    location: cinema.location,
+                    theaters: {}
+                };
+            }
+
+            const theater = showtime.theater;
+            if (!cinemasMap[cinema.id].theaters[theater.id]) {
+                cinemasMap[cinema.id].theaters[theater.id] = {
+                    id: theater.id,
+                    name: theater.name,
+                    capacity: theater.capacity,
+                    showtimes: []
+                };
+            }
+
+            cinemasMap[cinema.id].theaters[theater.id].showtimes.push({
+                id: showtime.id,
+                start_time: showtime.start_time,
+                end_time: showtime.end_time,
+                price: showtime.price,
+                status: showtime.status
+            });
+        });
+
+        // Chuyển đổi map thành mảng
+        const cinemas = Object.values(cinemasMap).map((cinema) => ({
+            id: cinema.id,
+            name: cinema.name,
+            location: cinema.location,
+            theaters: Object.values(cinema.theaters)
+        }));
+
+        res.status(200).json({ status: 'success', data: cinemas });
+    } catch (error) {
+        console.error('Error fetching cinemas by movie:', error);
+        res.status(500).json({ status: 'fail', message: 'Lỗi khi lấy danh sách rạp cho phim.' });
+    }
+};
+// exports.getCinemasByMovieApi = async (req, res) => {
+//     const { movieId } = req.params;
+//     const { date } = req.query;
+
+//     if (!movieId) {
+//         return res.status(400).json({ status: 'fail', message: 'Thiếu movieId.' });
+//     }
+
+//     // Nếu không có ngày được cung cấp, mặc định là hôm nay
+//     const selectedDate = date ? new Date(date) : new Date();
+
+//     try {
+//         // Tìm tất cả các suất chiếu cho phim này vào ngày đã chọn
+//         const showtimes = await Showtime.findAll({
+//             where: {
+//                 movie_id: movieId,
+//                 start_time: {
+//                     [Op.between]: [
+//                         new Date(selectedDate.setHours(0, 0, 0, 0)),
+//                         new Date(selectedDate.setHours(23, 59, 59, 999))
+//                     ]
+//                 }
+//             },
+//             include: [{
+//                 model: Theater,
+//                 as: 'theater',
+//                 include: [{
+//                     model: Cinema,
+//                     as: 'Cinema'
+//                 }]
+//             }],
+//             order: [['start_time', 'ASC']]
+//         });
+
+//         if (showtimes.length === 0) {
+//             return res.status(200).json({ status: 'success', data: [] });
+//         }
+
+//         // Tổ chức dữ liệu theo rạp
+//         const cinemasMap = {};
+
+//         showtimes.forEach((showtime) => {
+//             const cinema = showtime.theater.Cinema;
+//             if (!cinemasMap[cinema.id]) {
+//                 cinemasMap[cinema.id] = {
+//                     id: cinema.id,
+//                     name: cinema.name,
+//                     location: cinema.location,
+//                     theaters: {}
+//                 };
+//             }
+
+//             const theater = showtime.theater;
+//             if (!cinemasMap[cinema.id].theaters[theater.id]) {
+//                 cinemasMap[cinema.id].theaters[theater.id] = {
+//                     id: theater.id,
+//                     name: theater.name,
+//                     capacity: theater.capacity,
+//                     showtimes: []
+//                 };
+//             }
+
+//             cinemasMap[cinema.id].theaters[theater.id].showtimes.push({
+//                 id: showtime.id,
+//                 start_time: showtime.start_time,
+//                 end_time: showtime.end_time,
+//                 price: showtime.price,
+//                 status: showtime.status
+//             });
+//         });
+
+//         // Chuyển đổi map thành mảng với cấu trúc phù hợp frontend
+//         const cinemas = Object.values(cinemasMap).map((cinema) => ({
+//             id: cinema.id,
+//             name: cinema.name,
+//             location: cinema.location,
+//             theaters: Object.values(cinema.theaters).map((theater) => ({
+//                 id: theater.id,
+//                 name: theater.name,
+//                 capacity: theater.capacity,
+//                 showtimes: theater.showtimes
+//             }))
+//         }));
+
+//         res.status(200).json({ status: 'success', data: cinemas });
+//     } catch (error) {
+//         console.error('Error fetching cinemas by movie:', error);
+//         res.status(500).json({ status: 'fail', message: 'Lỗi khi lấy danh sách rạp cho phim.' });
+//     }
+// };
