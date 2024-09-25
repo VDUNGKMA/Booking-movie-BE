@@ -28,6 +28,9 @@ const User = sequelize.define('User', {
     phone_number: {
         type: DataTypes.STRING
     },
+    image:{
+        type: DataTypes.STRING
+    },
     role_id: {
         type: DataTypes.INTEGER,
         references: {

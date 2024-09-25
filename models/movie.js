@@ -38,7 +38,15 @@ const Movie = sequelize.define('Movie', {
     trailer_url: {
         type: DataTypes.STRING,
         allowNull: true
-    }
+    },
+    poster_public_id: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    trailer_public_id: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
 }, {
     tableName: 'Movies',
     timestamps: true
@@ -49,6 +57,10 @@ Movie.associate = (models) => {
     Movie.belongsToMany(models.Genre, {
         through: 'MovieGenres',
         foreignKey: 'movie_id',
+        otherKey: 'genre_id',
+        as: 'genres', // Thêm alias ở đây
+        onDelete: 'CASCADE', // Thêm dòng này
+        onUpdate: 'CASCADE',
     });
 
     // Quan hệ nhiều-nhiều giữa Movies và Theaters

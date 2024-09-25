@@ -87,7 +87,7 @@ const createToken = (user) => {
 // controllers/auth.controller.js
 exports.registerCustomer = async (req, res) => {
     try {
-        const { username, email, password, phone_number } = req.body;
+        const { username, email, password, phone_number, image } = req.body;
 
         // Kiểm tra nếu email đã tồn tại
         const existingUser = await User.findOne({ where: { email } });
@@ -107,12 +107,13 @@ exports.registerCustomer = async (req, res) => {
             email,
             password,
             phone_number,
-            role_id: roleId  // Lưu role_id thay vì role_name
+            role_id: roleId,  // Lưu role_id thay vì role_name
+            image
         });
 
         // Tạo JWT token
         const token = createToken(newUser);
-
+        
         res.status(201).json({
             status: 'success',
             token,
@@ -120,6 +121,7 @@ exports.registerCustomer = async (req, res) => {
                 user: newUser
             }
         });
+        console.log("check user:",newUser)
     } catch (error) {
         res.status(400).json({
             status: 'fail',
@@ -163,7 +165,8 @@ exports.login = async (req, res) => {
                     username: user.username,
                     email: user.email,
                     phone_number: user.phone_number,
-                    role_id: user.role_id
+                    role_id: user.role_id,
+                    image: user.image
                 }
             }
         });

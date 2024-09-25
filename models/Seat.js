@@ -7,34 +7,43 @@ const Seat = sequelize.define('Seat', {
         primaryKey: true,
         autoIncrement: true
     },
-    seat_number: {
+    theater_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: 'Theaters',
+            key: 'id'
+        },
+        onDelete: 'CASCADE'
+    },
+    row: {
         type: DataTypes.STRING,
         allowNull: false
     },
-    seat_category_id: {
+    number: {
         type: DataTypes.INTEGER,
+        allowNull: false
+    },
+    type: {
+        type: DataTypes.ENUM('Normal', 'VIP', 'Couple'),
         allowNull: false
     },
     status: {
         type: DataTypes.ENUM('available', 'reserved', 'booked'),
+        allowNull: false,
+        defaultValue: 'available'
+    },
+    price: {
+        type: DataTypes.INTEGER,
         allowNull: false
     }
 }, {
-    tableName: 'Seats',
+    tableName: 'seats',
     timestamps: true
 });
 
 Seat.associate = (models) => {
-    // Quan hệ nhiều-nhiều giữa Seats và Theaters
-    Seat.belongsToMany(models.Theater, {
-        through: 'TheaterSeats',
-        foreignKey: 'seat_id',
-    });
-
-    // Quan hệ n-1 giữa Seats và SeatCategories
-    Seat.belongsTo(models.SeatCategory, { foreignKey: 'seat_category_id' });
-    // Quan hệ n-1 giữa Seats và Tickets
-    Seat.hasMany(models.Ticket, { foreignKey: 'seat_id' });
+    Seat.belongsTo(models.Theater, { foreignKey: 'theater_id', as: 'theater' });
 };
 
 module.exports = Seat;
