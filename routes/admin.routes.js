@@ -143,7 +143,7 @@ router.get('/theaters/:theaterId/seats', seatController.getSeatsByTheater);
 router.get('/theaters/:theaterId/seats/admin', seatController.getSeatsByTheaterAdmin);
 router.patch('/theaters/:theaterId/seats/:seatId/status', seatController.updateSeatStatus);
 // Thêm route để lấy danh sách ghế theo suất chiếu
-router.get('/:showtimeId/seats', seatController.getSeatsByShowtime);
+// router.get('/:showtimeId/seats', seatController.getSeatsByShowtime);
 // Quản lý vé
 // router.get('/tickets', protect, restrictTo(1), ticketController.getTickets);
 router.post('/tickets', ticketController.createTicket);

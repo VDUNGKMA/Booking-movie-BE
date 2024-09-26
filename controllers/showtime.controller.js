@@ -7,6 +7,7 @@ const db = require('../models');
 const Showtime = db.Showtime;
 const Theater = db.Theater;
 const Movie = db.Movie;
+const Cinema = db.Cinema;
 // **1. Lấy Danh Sách Suất Chiếu với Phân Trang, Sắp Xếp và Tìm Kiếm**
 exports.getShowtimes = async (req, res) => {
     try {
@@ -233,5 +234,49 @@ exports.deleteShowtime = async (req, res) => {
     } catch (error) {
         console.error('Error in deleteShowtime:', error);
         res.status(500).json({ status: 'fail', message: 'Lỗi khi xóa suất chiếu.' });
+    }
+};
+exports.getShowtimesCustomer = async (req, res) => {
+    const movieId = req.params.movieId;
+    const date = req.query.date; // Có thể lọc theo ngày
+
+    try {
+        const whereClause = {};
+        if (date) {
+            const startOfDay = new Date(`${date}T00:00:00`);
+            const endOfDay = new Date(`${date}T23:59:59`);
+            whereClause.start_time = {
+                [Op.between]: [startOfDay, endOfDay]
+            };
+        }
+
+        const showtimes = await Showtime.findAll({
+            where: {
+                movie_id: movieId,
+                ...whereClause
+            },
+            include: [
+                {
+                    model: Theater,
+                    as: 'theater',
+                    include: [
+                        {
+                            model: Cinema,
+                            as: 'cinema'
+                        }
+                    ]
+                },
+                {
+                    model: Movie,
+                    as: 'movie',
+                    attributes: ['title'] // Lấy thêm thông tin tiêu đề phim nếu cần
+                }
+            ]
+        });
+
+        res.json(showtimes);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Lỗi server' });
     }
 };
