@@ -54,6 +54,6 @@ Payment.associate = (models) => {
     Payment.belongsTo(models.User, { foreignKey: 'user_id' });
 
     // Quan hệ n-n giữa Payments và Tickets
-    Payment.belongsToMany(Ticket, { through: 'PaymentTickets', foreignKey: 'payment_id' });
+    Payment.belongsToMany(models.Ticket, { through: 'PaymentTickets', foreignKey: 'payment_id' });
 };
 module.exports = Payment;

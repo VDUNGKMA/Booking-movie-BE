@@ -11,6 +11,8 @@ const Seat = db.Seat;
 const Movie = db.Movie;
 const Theater = db.Theater;
 const QRCode = db.QRCode
+const QRCode = require('../models/QRCode');
+const Showtime = require('../models/Showtime');
 
 // Helper function to calculate ticket price
 const calculateTicketPrice = (showtime, seat) => {
@@ -43,7 +45,7 @@ async function generateTicketInfo(ticketId) {
             },
             {
                 model: Seat,
-                attributes: ['seat_number']
+                attributes: ['row','number']
             }
         ],
     });
@@ -54,7 +56,7 @@ async function generateTicketInfo(ticketId) {
             theaterName: ticket.Screening?.Theater?.name || 'N/A',
             cinemaName: ticket.Screening?.Cinema?.name || 'N/A',
             location: ticket.Screening?.Cinema?.location || 'N/A',
-            seatName: ticket.Seat?.seat_number || 'N/A' 
+            seatName: `${ticket.Seat?.row || 'N/A'}${ticket.Seat?.number || 'N/A'}`
         };
     }
     // Thông báo khi không tìm thấy vé
@@ -81,84 +83,6 @@ exports.createTicket = async (req, res) => {
         if (!user || !showtime || !seat) {
             return res.status(404).json({ status: 'fail', message: 'User, Showtime hoặc Seat không tồn tại.' });
         }
-
-        // Kiểm tra xem suất chiếu có tồn tại không
-        const screening = await Screening.findByPk(screening_id);
-        if (!screening) {
-            return res.status(404).json({
-                status: 'fail',
-                message: 'Suất chiếu không tồn tại'
-            });
-        }
-
-        // Đặt vé
-        const ticket = await Ticket.create({
-            user_id: req.user.id,
-            screening_id,
-            seat_id,
-            price,
-            status: 'booked'
-        });
-
-        // Cập nhật trạng thái ghế
-        seat.status = 'booked';
-        await seat.save();
-
-        // Tạo dữ liệu mã QR
-        const ticketInfo = await generateTicketInfo(ticket.id);
-        console.log('Ticket Info:', ticketInfo); // Kiểm tra giá trị
-
-
-        // Tạo mã QR code dưới dạng base64
-        QR.toDataURL(JSON.stringify(ticketInfo), async (err, url) => {
-            if (err) {
-                return res.status(500).json({ error: 'Failed to generate QR code' });
-            }
-
-            // Lưu mã QR vào cơ sở dữ liệu (liên kết với bảng Tickets)
-            const qrCode = await QRCode.create({
-                code: url,          // Base64 của mã QR
-                ticket_id: ticket.id  // Liên kết với vé đã đặt
-            });
-
-            // Trả về thông tin vé và mã QR
-            res.status(201).json({
-                status: 'success',
-                data: {
-                    ticket,
-                    qrCode: qrCode.code  // Base64 mã QR trả về cho client
-                }
-            });
-        });
-    } catch (error) {
-        res.status(500).json({
-            status: 'fail',
-            message: error.message
-        });
-    }
-};
-
-
-exports.getCustomerTickets = async (req, res) => {
-    try {
-        const tickets = await Ticket.findAll({
-            where: { user_id: req.user.id }
-        });
-        res.status(200).json({
-            status: 'success',
-            data: { tickets }
-        });
-    } catch (error) {
-        res.status(500).json({
-            status: 'fail',
-            message: error.message
-        });
-    }
-};
-
-exports.getTicketByCustomer = async (req, res) => {
-    try {
-        const ticket = await Ticket.findOne({
 
         // Kiểm tra xem ghế đã được đặt chưa
         const existingTicket = await Ticket.findOne({
@@ -189,11 +113,15 @@ exports.getTicketByCustomer = async (req, res) => {
         await seat.update({ status: 'booked' });
 
         res.status(201).json({ status: 'success', data: newTicket });
+       
     } catch (error) {
-        console.error('Error in createTicket:', error);
-        res.status(500).json({ status: 'fail', message: 'Lỗi khi tạo vé.' });
+        res.status(500).json({
+            status: 'fail',
+            message: error.message
+        });
     }
 };
+
 
 // **2. Lấy Danh Sách Vé Với Phân Trang, Sắp Xếp và Tìm Kiếm**
 exports.getTickets = async (req, res) => {
@@ -337,6 +265,8 @@ exports.cancelTicket = async (req, res) => {
         res.status(500).json({ status: 'fail', message: 'Lỗi khi hủy vé.' });
     }
 };
+
+
 exports.createTicketApi = async (req, res) => {
     const { showtimeId, seatIds, paymentMethod, userId } = req.body;
 

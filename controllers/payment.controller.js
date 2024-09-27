@@ -164,7 +164,7 @@ exports.executePayment = async (req, res) => {
             const [userPart, ticketsPart] = referenceId.split('-tickets-');
             const userId = userPart.replace('user-', '');
             const ticketIds = ticketsPart.split('-');
-
+        
             // Lưu thông tin thanh toán vào cơ sở dữ liệu
             const payment = await Payment.create({
                 user_id: userId,
