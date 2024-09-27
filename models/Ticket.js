@@ -30,16 +30,16 @@ const Ticket = sequelize.define('Ticket', {
         onDelete: 'CASCADE',
         onUpdate: 'CASCADE'
     },
-    seat_id: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        references: {
-            model: 'Seats', // Tên bảng Seats
-            key: 'id',
-        },
-        onDelete: 'CASCADE',
-        onUpdate: 'CASCADE'
-    },
+    // seat_id: {
+    //     type: DataTypes.INTEGER,
+    //     allowNull: false,
+    //     references: {
+    //         model: 'Seats', // Tên bảng Seats
+    //         key: 'id',
+    //     },
+    //     onDelete: 'CASCADE',
+    //     onUpdate: 'CASCADE'
+    // },
     price: {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: false,
@@ -83,22 +83,18 @@ Ticket.associate = function (models) {
         onUpdate: 'CASCADE',
     });
 
-    // Quan hệ n-1 giữa Tickets và Seats
-    Ticket.belongsTo(models.Seat, { foreignKey: 'seat_id' });
+    // Quan hệ n-n giữa Tickets và Seats
+    Ticket.belongsToMany(models.Seat, { through: 'TicketSeats', foreignKey: 'ticket_id' });
 
-    // Quan hệ n-nhiều giữa Tickets và Payments
-    Ticket.belongsToMany(models.Payment, { through: 'PaymentTickets', foreignKey: 'ticket_id' });
+    // Quan hệ 1-1 giữa Tickets và Payments
+    Ticket.hasOne(models.Payment, {
+        foreignKey: 'ticket_id',
+        onDelete: 'CASCADE', // Xóa Payment khi Ticket bị xóa
+        onUpdate: 'CASCADE'  // Cập nhật Payment khi Ticket bị cập nhật
+    });
 
     // Quan hệ 1-1 giữa Tickets và QRCode
     Ticket.hasOne(models.QRCode, { foreignKey: 'ticket_id' });
-
-    Ticket.belongsTo(models.Seat, {
-        foreignKey: 'seat_id',
-        as: 'seat',
-        onDelete: 'CASCADE',
-        onUpdate: 'CASCADE',
-    });
-
 };
 
 module.exports = Ticket;

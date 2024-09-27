@@ -11,8 +11,8 @@ const Seat = db.Seat;
 const Movie = db.Movie;
 const Theater = db.Theater;
 const QRCode = db.QRCode
-const QRCode = require('../models/QRCode');
-const Showtime = require('../models/Showtime');
+const sequelize = db.sequelize
+const TicketSeats = db.TicketSeats
 
 // Helper function to calculate ticket price
 const calculateTicketPrice = (showtime, seat) => {
@@ -266,7 +266,7 @@ exports.cancelTicket = async (req, res) => {
     }
 };
 
-
+// hàm người dùng đặt vé
 exports.createTicketApi = async (req, res) => {
     const { showtimeId, seatIds, paymentMethod, userId } = req.body;
 
@@ -275,51 +275,51 @@ exports.createTicketApi = async (req, res) => {
     }
 
     try {
-        await sequelize.transaction(async (t) => {
-            // Kiểm tra tất cả ghế có còn trống không
-            const seats = await Seat.findAll({
-                where: {
-                    id: seatIds,
-                    showtime_id: showtimeId,
-                    status: 'available'
-                },
-                lock: t.LOCK.UPDATE,
-                transaction: t
-            });
-
-            if (seats.length !== seatIds.length) {
-                throw new Error('Một hoặc nhiều ghế đã được đặt.');
+        // Kiểm tra tất cả ghế có còn trống không
+        const seats = await Seat.findAll({
+            where: {
+                id: seatIds,
+                status: 'available'
             }
-
-            // Cập nhật trạng thái ghế thành 'booked'
-            await Seat.update(
-                { status: 'booked' },
-                {
-                    where: {
-                        id: seatIds
-                    },
-                    transaction: t
-                }
-            );
-
-            // Tính tổng giá
-            const totalPrice = seats.reduce((sum, seat) => sum + seat.price, 0);
-
-            // Tạo bản ghi Booking cho mỗi ghế
-            const ticket = seatIds.map(seatId => ({
-                user_id: userId,
-                showtime_id: showtimeId,
-                seat_id: seatId,
-                status: 'confirmed',
-                price: seats.find(seat => seat.id === seatId).price,
-                payment_method: paymentMethod,
-                payment_status: 'completed' // Hoặc 'pending' tùy thuộc vào phương thức thanh toán
-            }));
-
-            await Ticket.bulkCreate(ticket, { transaction: t });
-
-            res.status(201).json({ status: 'success', message: 'Đặt vé thành công.', data: { totalPrice } });
         });
+
+        if (seats.length !== seatIds.length) {
+            return res.status(400).json({ status: 'fail', message: 'Một hoặc nhiều ghế đã được đặt.' });
+        }
+
+        // Cập nhật trạng thái ghế thành 'booked'
+        await Seat.update(
+            { status: 'booked' },
+            {
+                where: {
+                    id: seatIds
+                }
+            }
+        );
+
+        // Tính tổng giá
+        const totalPrice = seats.reduce((sum, seat) => sum + seat.price, 0);
+
+        // Tạo một bản ghi Ticket duy nhất cho tất cả các ghế
+        const ticket = await Ticket.create({
+            user_id: userId,
+            showtime_id: showtimeId,
+            status: 'confirmed',
+            price: totalPrice,
+            payment_method: paymentMethod,
+            payment_status: 'completed'
+        });
+
+        // Tạo bản ghi trong bảng ticketseats cho mỗi ghế
+        const ticketSeats = seatIds.map(seat_id => ({
+            ticket_id: ticket.id,  // Sử dụng id của ticket mới tạo
+            seat_id: seat_id,
+        }));
+
+        console.log(ticketSeats); // Kiểm tra giá trị của ticketSeats
+        await TicketSeats.bulkCreate(ticketSeats);
+
+        res.status(201).json({ status: 'success', message: 'Đặt vé thành công.', data: { totalPrice } });
     } catch (error) {
         console.error('Error creating booking:', error);
         res.status(500).json({ status: 'fail', message: error.message || 'Lỗi khi đặt vé.' });

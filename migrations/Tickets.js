@@ -22,11 +22,11 @@ module.exports = {
                 allowNull: false,
                 references: { model: 'Screenings', key: 'id' }
             },
-            seat_id: {
-                type: Sequelize.INTEGER,
-                allowNull: false,
-                references: { model: 'Seats', key: 'id' }
-            },
+            // seat_id: {
+            //     type: Sequelize.INTEGER,
+            //     allowNull: false,
+            //     references: { model: 'Seats', key: 'id' }
+            // },
             status: {
                 type: Sequelize.ENUM('booked', 'canceled', 'confirmed'),
                 allowNull: false

@@ -1,7 +1,14 @@
 // controllers/payment.controller.js
 const Ticket = require('../models/Ticket');
 const Payment = require('../models/Payment');
-const PaymentTickets = require('../models/PaymentTickets')
+const Showtime = require('../models/Showtime')
+const Cinema = require('../models/Cinema');
+const Movie = require('../models/movie');
+const Theater = require('../models/Theater');
+const QR = require('qrcode');
+const QRCode = require('../models/QRCode');
+const Seat = require('../models/Seat');
+const TicketSeats = require('../models/TicketSeats');
 const fetch = require('node-fetch');
 
 // Lấy danh sách hóa đơn
@@ -37,39 +44,29 @@ async function generateAccessToken() {
 
 //hàm tạo thanh toán
 exports.createPayment = async (req, res) => {
-    const { ticketIds, userId } = req.body;
+    const { ticketId, userId } = req.body;
 
     try {
         // Tìm vé
-        const tickets = await Ticket.findAll({
+        const ticket = await Ticket.findOne({
             where: {
-                id: ticketIds,
+                id: ticketId,
                 user_id: userId,
-                status: 'booked'
+                status: 'confirmed'
             }
         });
 
-        if (!tickets || tickets.length === 0) {
-            return res.status(404).json({ message: 'No valid tickets found' });
+        if (!ticket) {
+            return res.status(404).json({ message: 'No valid ticket found' });
         }
 
-        // Tính toán tổng tiền
-        const items = tickets.map(ticket => ({
-            name: 'Movie Ticket',
-            sku: ticket.id.toString(),
-            unit_amount: {
-                currency_code: 'USD',
-                value: ticket.price.toFixed(2),
-            },
-            quantity: 1
-        }));
-
-        const itemTotal = tickets.reduce((sum, ticket) => sum + parseFloat(ticket.price), 0).toFixed(2);
+        // Tính toán tổng tiền (ở đây chỉ có một vé)
+        const itemTotal = parseFloat(ticket.price).toFixed(2);
 
         const createPaymentJson = {
             intent: 'CAPTURE',
             purchase_units: [{
-                reference_id: `user-${userId}-tickets-${ticketIds.join('-')}`, // Thêm reference_id
+                reference_id: `user-${userId}-ticket-${ticketId}`, // Thêm reference_id
                 amount: {
                     currency_code: 'USD',
                     value: itemTotal,
@@ -80,8 +77,16 @@ exports.createPayment = async (req, res) => {
                         }
                     }
                 },
-                description: `Payment for tickets: ${ticketIds.join(', ')}`,
-                items: items
+                description: `Payment for tickets: ${ticketId}`,
+                items: [{
+                    name: 'Movie Ticket',
+                    sku: ticket.id.toString(),
+                    unit_amount: {
+                        currency_code: 'USD',
+                        value: itemTotal,
+                    },
+                    quantity: 1
+                }]
             }],
             application_context: {
                 return_url: 'http://localhost:5000/api/customer/payment/execute',
@@ -131,7 +136,7 @@ exports.executePayment = async (req, res) => {
     
     try {
         if (!token) {
-            return res.status(400).json({ message: 'token không hợp lệ' });
+            return res.status(400).json({ message: 'Token không hợp lệ' });
         }
 
         // Lấy access token
@@ -160,40 +165,55 @@ exports.executePayment = async (req, res) => {
             const purchaseUnit = responseData.purchase_units?.[0];
             const referenceId = purchaseUnit?.reference_id;
 
-            // Phân tích reference_id để lấy userId và ticketIds
-            const [userPart, ticketsPart] = referenceId.split('-tickets-');
-            const userId = userPart.replace('user-', '');
-            const ticketIds = ticketsPart.split('-');
+            const [userPart, ticketPart] = referenceId.split('-ticket-'); // Cập nhật từ '-tickets-' thành '-ticket-'
+            
+            const userId = parseInt(userPart.replace('user-', ''), 10);
+            const ticketId = parseInt(ticketPart, 10); // Chỉ có một ticketId
+
+            // Kiểm tra sự tồn tại của ticket
+            const ticket = await Ticket.findOne({
+                where: { id: ticketId }
+            });
+
+            if (!ticket) {
+                return res.status(404).json({ message: 'Ticket không tồn tại' });
+            }
         
             // Lưu thông tin thanh toán vào cơ sở dữ liệu
             const payment = await Payment.create({
                 user_id: userId,
+                ticket_id: ticketId,
                 amount: parseFloat(responseData.purchase_units[0].payments.captures[0].amount.value),
                 payment_method: 'PayPal',
-                status: responseData.status
+                status: responseData.status,
             });
 
-            // Lưu các ticket vào bảng PaymentTickets
-            const paymentTickets = ticketIds.map(ticketId => ({
-                payment_id: payment.id,
-                ticket_id: ticketId
-            }));
-
-            await PaymentTickets.bulkCreate(paymentTickets); // Sử dụng bulkCreate để thêm nhiều bản ghi
-
-            // Cập nhật trạng thái vé
-            await Ticket.update(
-                    { status: 'confirmed' },
-                    { where: { id: ticketIds } } // Cập nhật tất cả vé với ID tương ứng
-                );
-
-            res.status(200).json({
-                message: 'Giao dịch thành công',
-                details: responseData,
-                payment_id: payment.id, // Trả về ID của hóa đơn đã lưu
-                userId, // Trả về userId
-                ticketIds // Trả về danh sách ticketIds
-            });
+            if (payment) {
+                const qrData = await generateQRCodeInfo(ticketId); // Đảm bảo gọi hàm bất đồng bộ với await
+    
+                // Tạo QR code
+                const qrCodeDataURL = await QR.toDataURL(JSON.stringify(qrData)); // Tạo QR code dưới dạng Data URL
+    
+                // Lưu vào bảng QRCode
+                const qrCodeEntry = await QRCode.create({
+                    ticket_id: ticketId, // Lưu ticketId để liên kết
+                    code: qrCodeDataURL // Lưu QR code
+                });
+    
+                return res.status(200).json({
+                    message: 'Giao dịch thành công',
+                    details: responseData,
+                    payment_id: payment.id, // Trả về ID của hóa đơn đã lưu
+                    userId, // Trả về userId
+                    ticketId, // Trả về ticketId
+                    qrCode: qrCodeEntry.code // Trả về mã QR code
+                });
+            } else {
+                res.status(400).json({
+                    message: 'Giao dịch không thành công',
+                    details: responseData,
+                });
+            }
         } else {
             res.status(400).json({
                 message: 'Giao dịch không thành công',
@@ -208,6 +228,68 @@ exports.executePayment = async (req, res) => {
         });
     }
 };
+
+//hàm tạo dữ liệu cho QR Code
+async function generateQRCodeInfo(ticketId) {
+    const ticket = await Ticket.findByPk(ticketId, {
+        include: [
+            {
+                model: Showtime,
+                as: 'showtime', // Sử dụng alias ở đây
+                include: [
+                    {
+                        model: Movie,
+                        as: 'movie',
+                        attributes: ['title']
+                    },
+                    {
+                        model: Theater,
+                        as: 'theater',
+                        attributes: ['name'],
+                        include: [
+                            {
+                                    model: Cinema,
+                                    as: 'cinema',
+                                    attributes: ['name', 'location']
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                model: Seat, // Lấy thông tin ghế từ Seat
+                through: { // Xác định bảng quan hệ
+                    model: TicketSeats, // Chỉ định model bảng quan hệ
+                },
+                attributes: ['row', 'number']
+            }
+        ],
+    });
+
+    if (ticket) {
+
+        const seatNames = ticket.Seats.map(seat => `${seat.row}${seat.number}`).join(', ') || 'N/A'; // Vị trí ghế ngồi
+
+        const showtime = ticket.showtime;
+        const date = showtime?.start_time ? new Date(showtime.start_time).toLocaleDateString() : 'NA'; //ngày chiếu
+        const startTime = showtime?.start_time ? new Date(showtime.start_time).toLocaleTimeString() : 'N/A' // thời gian bắt đầu
+        const endTime = showtime?.end_time ? new Date(showtime.end_time).toLocaleTimeString() : 'N/A'//thời gian kết thúc
+        
+        return {
+            movieName: showtime.movie?.title || 'N/A',
+            totalPrice: ticket.price || 'N/A',
+            theaterName: showtime.theater?.name || 'N/A',
+            cinemaName: showtime.theater?.cinema?.name || 'N/A',
+            location: showtime.theater?.cinema?.location || 'N/A',
+            seatName: seatNames || 'N/A',
+            date: date,
+            time: startTime !== 'N/A' && endTime !== 'N/A' ? `${startTime} - ${endTime}` : 'N/A' // Nối start_time và end_time
+        };
+    }
+    // Thông báo khi không tìm thấy vé
+    console.error(`No tickets found for IDs: ${ticketId}`);
+    return null;
+}
 
 //hủy thanh toán
 exports.cancelPayment = async (req, res) => {

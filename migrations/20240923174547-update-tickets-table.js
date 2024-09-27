@@ -4,7 +4,7 @@ module.exports = {
   up: async (queryInterface, Sequelize) => {
     await queryInterface.sequelize.transaction(async (t) => {
       // Thêm cột 'showtime_id'
-      await queryInterface.addColumn('Tickets', 'showtime_id','screening_id', {
+      await queryInterface.addColumn('Tickets', 'showtime_id',{
         type: Sequelize.INTEGER,
         allowNull: false,
         references: {
