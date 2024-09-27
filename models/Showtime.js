@@ -26,6 +26,14 @@ const Showtime = sequelize.define('Showtime', {
         allowNull: false,
         defaultValue: 'Scheduled',
     },
+    price: { // Thêm trường price
+        type: DataTypes.DECIMAL(10, 2), // Sử dụng DECIMAL để lưu trữ giá tiền
+        allowNull: false,
+        validate: {
+            isDecimal: true,
+            min: 0, // Giá không được âm
+        },
+    },
 }, {
     tableName: 'Showtimes',
     timestamps: true,
@@ -45,6 +53,15 @@ Showtime.associate = function (models) {
         onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
     });
+    // Showtime.hasMany(models.Seat, {
+    //     foreignKey: 'showtime_id',
+    //     as: 'seats',
+    //     onDelete: 'CASCADE',
+    //     onUpdate: 'CASCADE'
+    // });
+    // Quan hệ với Tickets (nếu có)
+    Showtime.hasMany(models.Ticket, { foreignKey: 'showtime_id', as: 'tickets' });
+
 };
 
 module.exports = Showtime;
