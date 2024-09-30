@@ -61,7 +61,11 @@ const Ticket = sequelize.define('Ticket', {
         type: DataTypes.ENUM('pending', 'completed', 'failed'),
         allowNull: false,
         defaultValue: 'pending'
-    }
+    },
+    reserved_at: {
+        type: DataTypes.DATE,
+        allowNull: true,
+    },
 }, {
     tableName: 'Tickets',
     timestamps: true,

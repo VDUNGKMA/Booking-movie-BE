@@ -181,3 +181,62 @@ exports.getUsers = async (req, res) => {
         res.status(500).json({ status: 'fail', message: 'Lỗi khi lấy danh sách người dùng.' });
     }
 };
+// Thay đổi username của người dùng
+exports.changeUsername = async (req, res) => {
+    try {
+        const { userId } = req.params; // Lấy userId từ token hoặc session
+        const { newUsername } = req.body;
+
+        // Kiểm tra username mới có rỗng không
+        if (!newUsername) {
+            return res.status(400).json({
+                status: 'fail',
+                message: 'New username is required'
+            });
+        }
+
+        // Lấy thông tin người dùng
+        const user = await User.findByPk(userId);
+        if (!user) {
+            return res.status(404).json({
+                status: 'fail',
+                message: 'User not found'
+            });
+        }
+
+        // Cập nhật username mới
+        user.username = newUsername;
+        await user.save();
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Username updated successfully',
+            data: {
+                user
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 'fail',
+            message: error.message
+        });
+    }
+};
+// Logout người dùng
+exports.logout = async (req, res) => {
+    try {
+        // Xoá token từ session hoặc cookies nếu sử dụng
+        res.clearCookie('jwt'); // Nếu bạn lưu token trong cookies
+        req.session = null; // Xoá session nếu sử dụng session-based auth
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Logged out successfully'
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 'fail',
+            message: 'Error logging out'
+        });
+    }
+};

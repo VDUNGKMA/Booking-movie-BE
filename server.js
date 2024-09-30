@@ -39,7 +39,8 @@ app.use('/api/admin', adminRoutes); // Route cho các hành động của admin
 app.use('/api/staff', staffRoutes);
 app.use('/api/customer', customerRoutes);
 // app.get('/api/user/me', protect, getMe); // Route lấy thông tin người dùng với bảo vệ JWT
-
+// Import và chạy cron job
+require('./cron/reservationCleanup');
 // Khởi tạo kết nối với cơ sở dữ liệu và đồng bộ model
 sequelize.sync({ alter: true }).then(() => {
     console.log('Database synchronized');

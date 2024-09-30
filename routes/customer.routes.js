@@ -7,9 +7,13 @@ const { protect, restrictTo } = require('../middleware/authMiddleware');
 const userController = require('../controllers/user.controller');
 const { getShowtimesCustomer } = require('../controllers/showtime.controller');
 const { getSeatsByShowtimeApi } = require('../controllers/seat.controller');
-const { createPayment, executePayment } = require('../controllers/payment.controller');
+const { createPayment, executePayment, cancelPayment } = require('../controllers/payment.controller');
 
 // Chỉ khách hàng (role_id = 3) được truy cập các route này
+router.get('/user/:id', userController.getCustomerById);
+// Thay đổi username 
+router.post('/changeUsername/:userId', userController.changeUsername);
+
 router.get('/user/:id', userController.getCustomerById);
 // Thêm route cho việc đổi mật khẩu
 router.post('/:userId/change-password', userController.changePassword);
@@ -30,9 +34,11 @@ router.post('/create-payment', createPayment);
 router.get('/payment/success', executePayment);
 
 // Route để hủy thanh toán PayPal (cancel_url)
-router.get('/payment/cancel', (req, res) => {
-    res.status(200).json({ message: 'Payment cancelled by user.' });
-});
+// router.get('/payment/cancel', (req, res) => {
+//     res.status(200).json({ message: 'Payment cancelled by user.' });
+// });
+// Route để hủy payment khi thanh toán bị hủy
+router.get('/cancel-payment', cancelPayment);
 
 // Route liên quan đến Vé
 router.post('/tickets', ticketController.createTicketApi);

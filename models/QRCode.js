@@ -31,8 +31,6 @@ const QRCode = sequelize.define('QRCode', {
 });
 QRCode.associate = (models) => {
     // Quan hệ 1-1 giữa QRCode và Tickets
-    // QRCode.belongsTo(models.Ticket, { foreignKey: 'ticket_id' });
-    // Quan hệ 1-1 giữa QRCode và Tickets
     QRCode.belongsTo(models.Ticket, { foreignKey: 'ticket_id', as: 'ticket', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
 };
 
