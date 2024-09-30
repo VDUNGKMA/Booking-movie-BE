@@ -146,18 +146,18 @@ router.patch('/theaters/:theaterId/seats/:seatId/status', seatController.updateS
 // router.get('/:showtimeId/seats', seatController.getSeatsByShowtime);
 // Quản lý vé
 // router.get('/tickets', protect, restrictTo(1), ticketController.getTickets);
-router.post('/tickets', ticketController.createTicket);
+// router.post('/tickets', ticketController.createTicket);
 
 // Lấy danh sách vé
-router.get('/tickets', ticketController.getTickets);
+// router.get('/tickets', ticketController.getTickets);
 
 // Lấy một vé theo ID
-router.get('/tickets/:ticketId', ticketController.getTicketById);
+// router.get('/tickets/:ticketId', ticketController.getTicketById);
 
 // Hủy vé
-router.patch('/:ticketId/cancel', ticketController.cancelTicket);
+// router.patch('/:ticketId/cancel', ticketController.cancelTicket);
 // Quản lý hóa đơn
-router.get('/payments', protect, restrictTo(1), paymentController.getPayments);
+// router.get('/payments', protect, restrictTo(1), paymentController.getPayments);
 
 // Thống kê doanh thu
 router.get('/revenue', protect, restrictTo(1), getRevenue);

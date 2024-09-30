@@ -45,7 +45,13 @@ const Seat = sequelize.define('Seat', {
 Seat.associate = (models) => {
     Seat.belongsTo(models.Theater, { foreignKey: 'theater_id', as: 'theater' });
     // Quan hệ một-nhiều giữa Seat và Tickets (nếu có)
-    Seat.hasMany(models.Ticket, { foreignKey: 'seat_id', as: 'tickets' });
+    // Seat.hasMany(models.Ticket, { foreignKey: 'seat_id', as: 'tickets' });
+    Seat.belongsToMany(models.Ticket, {
+        through: 'TicketSeats',
+        foreignKey: 'seat_id',
+        otherKey: 'ticket_id',
+        as: 'tickets',
+    });
 };
 
 module.exports = Seat;

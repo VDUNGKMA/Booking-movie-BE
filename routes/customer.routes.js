@@ -7,6 +7,7 @@ const { protect, restrictTo } = require('../middleware/authMiddleware');
 const userController = require('../controllers/user.controller');
 const { getShowtimesCustomer } = require('../controllers/showtime.controller');
 const { getSeatsByShowtimeApi } = require('../controllers/seat.controller');
+const { createPayment, executePayment } = require('../controllers/payment.controller');
 
 // Chỉ khách hàng (role_id = 3) được truy cập các route này
 router.get('/user/:id', userController.getCustomerById);
@@ -23,7 +24,15 @@ router.get('/showtimes/:showtimeId/seats', getSeatsByShowtimeApi)
 // router.get('/screenings', protect, restrictTo(3), screeningController.getScreeningsByMovie);
 // router.get('/screenings/:id', protect, restrictTo(3), screeningController.getScreening);
 // Route để lấy danh sách rạp theo phim
+router.post('/create-payment', createPayment);
 
+// Route để capture đơn hàng PayPal (return_url)
+router.get('/payment/success', executePayment);
+
+// Route để hủy thanh toán PayPal (cancel_url)
+router.get('/payment/cancel', (req, res) => {
+    res.status(200).json({ message: 'Payment cancelled by user.' });
+});
 
 // Route liên quan đến Vé
 router.post('/tickets', ticketController.createTicketApi);

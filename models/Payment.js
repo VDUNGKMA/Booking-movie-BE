@@ -50,10 +50,15 @@ const Payment = sequelize.define('Payment', {
     timestamps: true
 });
 Payment.associate = (models) => {
+    // // Quan hệ n-1 giữa Payments và Users
+    // Payment.belongsTo(models.User, { foreignKey: 'user_id' });
+
+    // // Quan hệ n-1 giữa Payments và Tickets
+    // Payment.belongsTo(models.Ticket, { foreignKey: 'ticket_id' });
     // Quan hệ n-1 giữa Payments và Users
-    Payment.belongsTo(models.User, { foreignKey: 'user_id' });
+    Payment.belongsTo(models.User, { foreignKey: 'user_id', as: 'user', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
 
     // Quan hệ n-1 giữa Payments và Tickets
-    Payment.belongsTo(models.Ticket, { foreignKey: 'ticket_id' });
+    Payment.belongsTo(models.Ticket, { foreignKey: 'ticket_id', as: 'ticket', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
 };
 module.exports = Payment;
