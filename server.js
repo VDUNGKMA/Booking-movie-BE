@@ -40,7 +40,13 @@ app.use('/api/staff', staffRoutes);
 app.use('/api/customer', customerRoutes);
 // app.get('/api/user/me', protect, getMe); // Route lấy thông tin người dùng với bảo vệ JWT
 // Import và chạy cron job
-require('./cron/reservationCleanup');
+// require('./cron/reservationCleanup');
+const cron = require('node-cron');
+const releaseExpiredReservations = require('./cron/reservationCleanup');
+// Thiết lập cron job chạy mỗi phút
+cron.schedule('* * * * *', () => {
+    releaseExpiredReservations();
+});
 // Khởi tạo kết nối với cơ sở dữ liệu và đồng bộ model
 sequelize.sync({ alter: true }).then(() => {
     console.log('Database synchronized');

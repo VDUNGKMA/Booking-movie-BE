@@ -388,6 +388,71 @@ exports.getSeatsByShowtime = async (req, res) => {
 //         }
 //     };
 
+// exports.getSeatsByShowtimeApi = async (req, res) => {
+//     const { showtimeId } = req.params;
+//     console.log("check showtimeid", showtimeId);
+//     try {
+//         // Lấy thông tin suất chiếu
+//         const showtime = await Showtime.findByPk(showtimeId);
+
+//         if (!showtime) {
+//             return res.status(404).json({
+//                 status: 'error',
+//                 message: 'Suất chiếu không tồn tại',
+//             });
+//         }
+
+//         // Lấy tất cả ghế trong phòng chiếu của suất chiếu
+//         const seats = await Seat.findAll({
+//             where: { theater_id: showtime.theater_id },
+//         });
+
+//         // Lấy danh sách ghế đã được đặt cho suất chiếu này
+//         const bookedTickets = await Ticket.findAll({
+//             where: {
+//                 showtime_id: showtimeId,
+//                 status: 'confirmed', // Chỉ lấy các vé đã xác nhận
+//             },
+//             include: [
+//                 {
+//                     model: Seat,
+//                     as: 'seats',
+//                     attributes: ['id'],
+//                     through: { attributes: [] }, // Loại bỏ các thuộc tính từ bảng trung gian
+//                 },
+//             ],
+//         });
+
+//         // Tạo một tập hợp các `seat_id` đã được đặt
+//         const bookedSeatIds = new Set();
+//         bookedTickets.forEach(ticket => {
+//             ticket.seats.forEach(seat => {
+//                 bookedSeatIds.add(seat.id);
+//             });
+//         });
+
+//         // Gắn trạng thái cho ghế
+//         const seatsWithStatus = seats.map(seat => {
+//             return {
+//                 ...seat.toJSON(),
+//                 status: bookedSeatIds.has(seat.id) ? 'booked' : 'available',
+//             };
+//         });
+
+//         res.json({
+//             status: 'success',
+//             data: { seats: seatsWithStatus },
+//         });
+//     } catch (error) {
+//         console.error('Error fetching seats:', error);
+//         res.status(500).json({
+//             status: 'error',
+//             message: 'Lỗi khi lấy danh sách ghế',
+//         });
+//     }
+// };
+// controllers/ticket.controller.js
+
 exports.getSeatsByShowtimeApi = async (req, res) => {
     const { showtimeId } = req.params;
     console.log("check showtimeid", showtimeId);
@@ -411,7 +476,7 @@ exports.getSeatsByShowtimeApi = async (req, res) => {
         const bookedTickets = await Ticket.findAll({
             where: {
                 showtime_id: showtimeId,
-                status: 'confirmed', // Chỉ lấy các vé đã xác nhận
+                payment_status: { [Op.in]: ['pending', 'completed'] }, // Chỉ lấy các vé đang trong trạng thái đặt hoặc đã thanh toán
             },
             include: [
                 {

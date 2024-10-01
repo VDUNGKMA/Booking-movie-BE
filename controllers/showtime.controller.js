@@ -236,6 +236,13 @@ exports.deleteShowtime = async (req, res) => {
         res.status(500).json({ status: 'fail', message: 'Lỗi khi xóa suất chiếu.' });
     }
 };
+
+const dayjs = require('dayjs');
+const utc = require('dayjs/plugin/utc');
+const timezone = require('dayjs/plugin/timezone');
+// Kích hoạt các plugin
+dayjs.extend(utc);
+dayjs.extend(timezone);
 exports.getShowtimesCustomer = async (req, res) => {
     const movieId = req.params.movieId;
     const date = req.query.date; // Có thể lọc theo ngày
@@ -273,8 +280,13 @@ exports.getShowtimesCustomer = async (req, res) => {
                 }
             ]
         });
-
-        res.json(showtimes);
+        // Chuyển đổi thời gian từ UTC sang múi giờ 'Asia/Ho_Chi_Minh'
+        const convertedShowtimes = showtimes.map(showtime => ({
+            ...showtime.toJSON(),
+            start_time: dayjs(showtime.start_time).tz('Asia/Ho_Chi_Minh').format(),
+            end_time: dayjs(showtime.end_time).tz('Asia/Ho_Chi_Minh').format()
+        }));
+        res.json(convertedShowtimes);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Lỗi server' });

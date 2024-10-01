@@ -101,7 +101,7 @@ Ticket.associate = function (models) {
     Ticket.belongsToMany(models.Seat, { through: 'TicketSeats', foreignKey: 'ticket_id', otherKey: 'seat_id', as: 'seats' });
     // Quan hệ 1-1 giữa Tickets và Payments
     Ticket.hasOne(models.Payment, {
-        foreignKey: 'ticket_id',
+        foreignKey: 'ticket_id',    
         as: 'payment',
         onDelete: 'CASCADE', // Xóa Payment khi Ticket bị xóa
         onUpdate: 'CASCADE'  // Cập nhật Payment khi Ticket bị cập nhật
