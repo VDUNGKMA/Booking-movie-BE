@@ -141,7 +141,7 @@ router.delete('/theaters/:theaterId/seats/:seatId', protect, restrictTo(1), seat
 router.get('/theaters/:theaterId/seats', seatController.getSeatsByTheater);
 // Route lấy danh sách ghế với phân trang cho quản trị viên
 router.get('/theaters/:theaterId/seats/admin', seatController.getSeatsByTheaterAdmin);
-router.patch('/theaters/:theaterId/seats/:seatId/status', seatController.updateSeatStatus);
+// router.patch('/theaters/:theaterId/seats/:seatId/status', seatController.updateSeatStatus);
 // Thêm route để lấy danh sách ghế theo suất chiếu
 // router.get('/:showtimeId/seats', seatController.getSeatsByShowtime);
 // Quản lý vé
@@ -150,7 +150,9 @@ router.patch('/theaters/:theaterId/seats/:seatId/status', seatController.updateS
 
 // Lấy danh sách vé
 // router.get('/tickets', ticketController.getTickets);
-
+router.get('/tickets', ticketController.getTicketsForAdmin);
+// Route để hủy vé
+router.patch('/tickets/:ticketId/cancel', ticketController.cancelTicket);
 // Lấy một vé theo ID
 // router.get('/tickets/:ticketId', ticketController.getTicketById);
 

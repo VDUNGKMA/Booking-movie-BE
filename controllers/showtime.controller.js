@@ -237,38 +237,100 @@ exports.deleteShowtime = async (req, res) => {
     }
 };
 
+// const dayjs = require('dayjs');
+// const utc = require('dayjs/plugin/utc');
+// const timezone = require('dayjs/plugin/timezone');
+// // Kích hoạt các plugin
+// dayjs.extend(utc);
+// dayjs.extend(timezone);
+// exports.getShowtimesCustomer = async (req, res) => {
+//     const movieId = req.params.movieId;
+//     const date = req.query.date; // Có thể lọc theo ngày
+
+//     try {
+//         const whereClause = {};
+//         if (date) {
+//             const startOfDay = new Date(`${date}T00:00:00`);
+//             const endOfDay = new Date(`${date}T23:59:59`);
+//             whereClause.start_time = {
+//                 [Op.between]: [startOfDay, endOfDay]
+//             };
+//         }
+
+//         const showtimes = await Showtime.findAll({
+//             where: {
+//                 movie_id: movieId,
+//                 ...whereClause
+//             },
+//             include: [
+//                 {
+//                     model: Theater,
+//                     as: 'theater',
+//                     include: [
+//                         {
+//                             model: Cinema,
+//                             as: 'cinema'
+//                         }
+//                     ]
+//                 },
+//                 {
+//                     model: Movie,
+//                     as: 'movie',
+//                     attributes: ['title'] // Lấy thêm thông tin tiêu đề phim nếu cần
+//                 }
+//             ]
+//         });
+//         // Chuyển đổi thời gian từ UTC sang múi giờ 'Asia/Ho_Chi_Minh'
+//         const convertedShowtimes = showtimes.map(showtime => ({
+//             ...showtime.toJSON(),
+//             start_time: dayjs(showtime.start_time).tz('Asia/Ho_Chi_Minh').format(),
+//             end_time: dayjs(showtime.end_time).tz('Asia/Ho_Chi_Minh').format()
+//         }));
+//         res.json(convertedShowtimes);
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).json({ message: 'Lỗi server' });
+//     }
+// };
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
 const timezone = require('dayjs/plugin/timezone');
 // Kích hoạt các plugin
 dayjs.extend(utc);
 dayjs.extend(timezone);
+
 exports.getShowtimesCustomer = async (req, res) => {
     const movieId = req.params.movieId;
     const date = req.query.date; // Có thể lọc theo ngày
 
     try {
-        const whereClause = {};
+        // Lấy thời gian hiện tại theo múi giờ 'Asia/Ho_Chi_Minh'
+        const currentTime = dayjs().tz('Asia/Ho_Chi_Minh').toDate();
+
+        const whereClause = {
+            movie_id: movieId,
+            end_time: { // Thêm điều kiện end_time > current time
+                [Op.gt]: currentTime
+            }
+        };
+
         if (date) {
-            const startOfDay = new Date(`${date}T00:00:00`);
-            const endOfDay = new Date(`${date}T23:59:59`);
+            const startOfDay = dayjs(date).startOf('day').toDate(); // Bắt đầu ngày
+            const endOfDay = dayjs(date).endOf('day').toDate(); // Kết thúc ngày
             whereClause.start_time = {
                 [Op.between]: [startOfDay, endOfDay]
             };
         }
 
         const showtimes = await Showtime.findAll({
-            where: {
-                movie_id: movieId,
-                ...whereClause
-            },
+            where: whereClause,
             include: [
                 {
                     model: Theater,
                     as: 'theater',
                     include: [
                         {
-                            model: Cinema,
+                            model: db.Cinema, // Đảm bảo model Cinema được định nghĩa và liên kết đúng
                             as: 'cinema'
                         }
                     ]
@@ -278,14 +340,17 @@ exports.getShowtimesCustomer = async (req, res) => {
                     as: 'movie',
                     attributes: ['title'] // Lấy thêm thông tin tiêu đề phim nếu cần
                 }
-            ]
+            ],
+            order: [['start_time', 'ASC']] // Sắp xếp theo thời gian bắt đầu tăng dần
         });
+
         // Chuyển đổi thời gian từ UTC sang múi giờ 'Asia/Ho_Chi_Minh'
         const convertedShowtimes = showtimes.map(showtime => ({
             ...showtime.toJSON(),
             start_time: dayjs(showtime.start_time).tz('Asia/Ho_Chi_Minh').format(),
             end_time: dayjs(showtime.end_time).tz('Asia/Ho_Chi_Minh').format()
         }));
+
         res.json(convertedShowtimes);
     } catch (error) {
         console.error(error);

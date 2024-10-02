@@ -47,6 +47,7 @@ Cinema.associate = (models) => {
     //     onDelete: 'CASCADE', // Thêm dòng này
     //     onUpdate: 'CASCADE',
     // });
+   
 };
 
 module.exports = Cinema;

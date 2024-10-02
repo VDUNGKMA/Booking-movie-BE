@@ -13,7 +13,7 @@ const { protect, restrictTo } = require('../middleware/authMiddleware');
 //router.put('/tickets/:id', protect, restrictTo(2), ticketController.updateTicketStatus);
 
 // Route liên quan đến Ghế ngồi
-router.put('/seats/:id', protect, restrictTo(2), seatController.updateSeatStatus);
+// router.put('/seats/:id', protect, restrictTo(2), seatController.updateSeatStatus);
 
 // Route liên quan đến Suất chiếu
 // router.get('/screenings', protect, restrictTo(2), screeningController.getScreenings);

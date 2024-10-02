@@ -303,24 +303,7 @@
 
 // controllers/ticket.controller.js
 
-const { Op } = require('sequelize');
-const db = require('../models');
-const Ticket = db.Ticket;
-const User = db.User;
-const Showtime = db.Showtime;
-const Cinema = db.Cinema;
-const Seat = db.Seat;
 
-// Import sequelize từ db
-const sequelize = db.sequelize;
-
-// Helper function to calculate ticket price
-const calculateTicketPrice = (showtime, seat) => {
-    // Giá suất chiếu và giá ghế đã được lưu trong cơ sở dữ liệu
-    const showtimePrice = parseFloat(showtime.price) || 0;
-    const seatPrice = parseFloat(seat.price) || 0;
-    return showtimePrice + seatPrice;
-};
 
 // **createTicketApi: Tạo Vé Mới**
 // exports.createTicketApi = async (req, res) => {
@@ -608,6 +591,24 @@ const calculateTicketPrice = (showtime, seat) => {
 //     }
 // };
 // Helper function to check seat availability for a showtime
+const { Op } = require('sequelize');
+const db = require('../models');
+const Ticket = db.Ticket;
+const User = db.User;
+const Showtime = db.Showtime;
+const Cinema = db.Cinema;
+const Seat = db.Seat;
+
+// Import sequelize từ db
+const sequelize = db.sequelize;
+
+// Helper function to calculate ticket price
+const calculateTicketPrice = (showtime, seat) => {
+    // Giá suất chiếu và giá ghế đã được lưu trong cơ sở dữ liệu
+    const showtimePrice = parseFloat(showtime.price) || 0;
+    const seatPrice = parseFloat(seat.price) || 0;
+    return showtimePrice + seatPrice;
+};
 const isSeatAvailable = async (showtimeId, seatId) => {
     const ticket = await Ticket.findOne({
         where: {
@@ -725,5 +726,181 @@ exports.createTicketApi = async (req, res) => {
     } catch (error) {
         console.error('Error creating booking:', error);
         res.status(500).json({ status: 'fail', message: error.message || 'Lỗi khi đặt vé.' });
+    }
+};
+// controllers/ticket.controller.js
+
+exports.getTicketsForAdmin = async (req, res) => {
+    try {
+        // Lấy các tham số từ query
+        let { page, limit, sortField, sortOrder, search } = req.query;
+
+        // Thiết lập giá trị mặc định nếu không có tham số
+        page = parseInt(page) || 1;
+        limit = parseInt(limit) || 10;
+        sortField = sortField || 'createdAt';
+        sortOrder = sortOrder === 'DESC' ? 'DESC' : 'ASC';
+        search = search ? search.trim() : '';
+
+        const offset = (page - 1) * limit;
+
+        // Xây dựng điều kiện tìm kiếm
+        let whereCondition = {};
+
+        if (search) {
+            // Kiểm tra nếu search là số
+            const numericSearch = parseInt(search);
+            const isNumeric = !isNaN(numericSearch);
+
+            whereCondition = {
+                [Op.or]: [
+                    { '$UserData.username$': { [Op.like]: `%${search}%` } },
+                    { '$showtime.movie.title$': { [Op.like]: `%${search}%` } },
+                    { '$seats.row$': { [Op.like]: `%${search}%` } },
+                    // Sử dụng Op.eq cho seats.number nếu search là số
+                    ...(isNumeric ? [{ '$seats.number$': numericSearch }] : []),
+                    { status: { [Op.like]: `%${search}%` } },
+                ],
+            };
+        }
+
+        // Sử dụng findAndCountAll để thực hiện count và findAll trong một truy vấn duy nhất
+        const { count: totalTickets, rows: tickets } = await Ticket.findAndCountAll({
+            where: whereCondition,
+            include: [
+                {
+                    model: User,
+                    as: 'UserData', // Sử dụng alias 'UserData'
+                    attributes: ['id', 'username', 'email'], // Chọn các trường cần thiết
+                    required: true, // Đảm bảo INNER JOIN
+                },
+                {
+                    model: Showtime,
+                    as: 'showtime',
+                    attributes: ['id', 'start_time', 'end_time'],
+                    include: [
+                        {
+                            model: db.Movie, // Giả sử có model Movie
+                            as: 'movie',
+                            attributes: ['id', 'title'],
+                            required: true, // Đảm bảo INNER JOIN
+                        },
+                    ],
+                    required: true, // Đảm bảo INNER JOIN
+                },
+                {
+                    model: Seat,
+                    as: 'seats',
+                    attributes: ['id', 'row', 'number', 'type', 'price'],
+                    required: true, // Đảm bảo INNER JOIN
+                    through: {
+                        attributes: [], // Loại bỏ các trường trong bảng trung gian
+                    },
+                },
+            ],
+            distinct: true, // Đảm bảo đếm đúng số vé khi có nhiều mối quan hệ
+            order: [[sortField, sortOrder]],
+            limit: limit,
+            offset: offset,
+            subQuery: false, // Thêm thuộc tính này
+        });
+
+        // Định dạng dữ liệu trả về
+        const formattedTickets = tickets.map(ticket => ({
+            id: ticket.id,
+            user: {
+                id: ticket.UserData.id,
+                username: ticket.UserData.username,
+                email: ticket.UserData.email,
+            },
+            movie: {
+                id: ticket.showtime.movie.id,
+                title: ticket.showtime.movie.title,
+            },
+            showtime: {
+                id: ticket.showtime.id,
+                start_time: ticket.showtime.start_time,
+                end_time: ticket.showtime.end_time,
+            },
+            seats: ticket.seats.map(seat => ({
+                id: seat.id,
+                row: seat.row,
+                number: seat.number,
+                type: seat.type,
+                price: seat.price,
+            })),
+            price: ticket.price,
+            status: ticket.status,
+            payment_method: ticket.payment_method,
+            payment_status: ticket.payment_status,
+            reserved_at: ticket.reserved_at,
+            createdAt: ticket.createdAt,
+            updatedAt: ticket.updatedAt,
+        }));
+
+        res.status(200).json({
+            status: 'success',
+            data: {
+                tickets: formattedTickets,
+                totalTickets,
+                currentPage: page,
+                totalPages: Math.ceil(totalTickets / limit),
+            },
+        });
+    } catch (error) {
+        console.error('Error fetching tickets for admin:', error);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+        res.status(500).json({ status: 'fail', message: 'Lỗi khi lấy danh sách vé.' });
+    }
+};
+
+exports.cancelTicket = async (req, res) => {
+    const { ticketId } = req.params;
+
+    try {
+        const ticket = await Ticket.findByPk(ticketId, {
+            include: [
+                {
+                    model: Showtime,
+                    as: 'showtime',
+                    include: [
+                        {
+                            model: Cinema,
+                            as: 'cinema',
+                        },
+                        {
+                            model: db.Movie,
+                            as: 'movie',
+                        },
+                    ],
+                },
+                {
+                    model: Seat,
+                    as: 'seats',
+                },
+                {
+                    model: User,
+                    as: 'user',
+                },
+            ],
+        });
+
+        if (!ticket) {
+            return res.status(404).json({ status: 'fail', message: 'Vé không tồn tại.' });
+        }
+
+        if (ticket.status === 'cancelled') {
+            return res.status(400).json({ status: 'fail', message: 'Vé đã bị hủy trước đó.' });
+        }
+
+        // Cập nhật trạng thái vé
+        ticket.status = 'cancelled';
+        await ticket.save();
+
+        res.status(200).json({ status: 'success', message: 'Hủy vé thành công.' });
+    } catch (error) {
+        console.error('Error cancelling ticket:', error);
+        res.status(500).json({ status: 'fail', message: 'Lỗi khi hủy vé.' });
     }
 };

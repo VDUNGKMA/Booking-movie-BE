@@ -61,7 +61,6 @@ Showtime.associate = function (models) {
     // });
     // Quan hệ với Tickets (nếu có)
     Showtime.hasMany(models.Ticket, { foreignKey: 'showtime_id', as: 'tickets' });
-
 };
 
 module.exports = Showtime;

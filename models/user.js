@@ -60,15 +60,8 @@ const User = sequelize.define('User', {
 User.belongsTo(Role, { foreignKey: 'role_id' });
 Role.hasMany(User, { foreignKey: 'role_id' });
 User.associate = (models) => {
-    // Quan hệ nhiều-nhiều giữa Users và Tickets
-    User.belongsToMany(models.Ticket, {
-        through: 'UserTickets',
-        foreignKey: 'user_id',
-        as: 'tickets',
-        onDelete: 'CASCADE',
-        onUpdate: 'CASCADE',
-    });
-
+    // Thiết lập quan hệ một-nhiều giữa User và Ticket
+    User.hasMany(models.Ticket, { foreignKey: 'user_id', as: 'tickets' });
     // // Quan hệ nhiều-nhiều giữa Users và Screenings
     // User.belongsToMany(models.Screening, {
     //     through: 'UserScreenings',
