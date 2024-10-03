@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const ticketController = require('../controllers/ticket.controller');
 const movieController = require('../controllers/movie.controller');
-const screeningController = require('../controllers/screening.controller');
 const paymentController = require('../controllers/payment.controller');
 const { protect, restrictTo } = require('../middleware/authMiddleware');
 const userController = require('../controllers/user.controller');
@@ -17,7 +16,8 @@ router.post('/:userId/change-password', userController.changePassword);
 router.get('/movies', movieController.getAllMovies);
 router.get('/movies/:id', movieController.getMovieById);
 router.get('/movies/:movieId/cinemas', movieController.getCinemasByMovie);
-router.get('/movie/:movieId/showtimes', getShowtimesCustomer)   
+router.get('/movie/:movieId/showtimes', getShowtimesCustomer);
+router.get('/movie/search', movieController.searchMoviesByTitle)  
 
 // Route liên quan đến Suất Chiếu
 router.get('/showtimes/:showtimeId/seats', getSeatsByShowtimeApi)

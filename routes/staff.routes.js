@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const ticketController = require('../controllers/ticket.controller');
 const seatController = require('../controllers/seat.controller');
-const screeningController = require('../controllers/screening.controller');
 const cinemaController = require('../controllers/cinema.controller');
 const { protect, restrictTo } = require('../middleware/authMiddleware');
 
@@ -15,8 +14,9 @@ const { protect, restrictTo } = require('../middleware/authMiddleware');
 // Route liên quan đến Ghế ngồi
 router.put('/seats/:id', protect, restrictTo(2), seatController.updateSeatStatus);
 
-// Route liên quan đến Suất chiếu
-// router.get('/screenings', protect, restrictTo(2), screeningController.getScreenings);
+// Route liên quan đến movies
+router.get('/currentMovies',protect, restrictTo(2),movieController.getCurrentMovies);
+router.get('/upComingMovies',protect, restrictTo(2),movieController.getUpcomingMovies);
 
 // Route liên quan đến Rạp chiếu phim
 router.get('/cinemas', protect, restrictTo(2), cinemaController.getCinemas);
