@@ -24,7 +24,8 @@ app.use(cors({
         'http://192.168.1.119:5000',
         'http://192.168.0.101:5000',
         'http://192.168.1.12:5000',
-        'http://10.0.2.2:5000',],  // Cho phép frontend từ localhost:5000 (nếu frontend React chạy trên cổng này)
+        'http://10.0.2.2:5000',
+        'http://192.168.1.14:5000'],  // Cho phép frontend từ localhost:5000 (nếu frontend React chạy trên cổng này)
     credentials: true                 // Cho phép gửi cookie, token, thông tin xác thực
 }));
 

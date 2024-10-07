@@ -7,8 +7,18 @@ const {
     getUserById,
     updateUser,
     deleteUser,
-    getRevenue,
     getUsersByRole,
+    getDailyRevenueByCinema,
+    getMonthlyRevenueByCinema,
+    getYearlyRevenueByCinema,
+    getTotalDailyRevenue,
+    getTotalMonthlyRevenue,
+    getTotalYearlyRevenue,
+    getDailyRevenue,
+    getMonthlyRevenue,
+    getYearlyRevenue,
+    getWeeklyRevenueByMovie,
+    getRevenueByShowtime,
 } = require('../controllers/admin.controller');
 const movieController = require('../controllers/movie.controller');
 const showtimeController = require('../controllers/showtime.controller')
@@ -161,8 +171,8 @@ router.patch('/tickets/:ticketId/cancel', ticketController.cancelTicket);
 // Quản lý hóa đơn
 // router.get('/payments', protect, restrictTo(1), paymentController.getPayments);
 
-// Thống kê doanh thu
-router.get('/revenue', protect, restrictTo(1), getRevenue);
+
+
 
 // Quản lý danh mục ghế ngồi
 // Thêm danh mục ghế ngồi
@@ -173,5 +183,41 @@ router.put('/seat-categories/:id', protect, restrictTo(1), seatCategoryControlle
 
 // Xóa danh mục ghế ngồi
 router.delete('/seat-categories/:id', protect, restrictTo(1), seatCategoryController.deleteSeatCategory);
+
+// router.get('/revenue/daily',  getDailyRevenue);
+// router.get('/revenue/monthly',  getMonthlyRevenue);
+// router.get('/revenue/yearly',  getYearlyRevenue);
+// router.get('/transactions', getTransactions);
+// router.get('/cinema/daily-revenue', getDailyRevenueByCinema);
+
+// // Lấy doanh thu theo tháng cho một rạp
+// router.get('/cinema/monthly-revenue', getMonthlyRevenueByCinema);
+
+// // Lấy doanh thu theo năm cho một rạp
+// router.get('/cinema/yearly-revenue', getYearlyRevenueByCinema)
+// // Tổng doanh thu theo ngày
+// router.get('/cinema/total-daily-revenue', getTotalDailyRevenue);
+
+// // Tổng doanh thu theo tháng
+// router.get('/cinema/total-monthly-revenue', getTotalMonthlyRevenue);
+
+// // Tổng doanh thu theo năm
+// router.get('/cinema/total-yearly-revenue', getTotalYearlyRevenue);
+// Route doanh thu theo ngày
+router.get('/revenue/daily', getDailyRevenue);
+// Route doanh thu theo tháng
+router.get('/revenue/monthly', getMonthlyRevenue);
+
+// Route doanh thu theo năm
+router.get('/revenue/yearly', getYearlyRevenue);
+
+router.get('/revenue/total/daily', getTotalDailyRevenue);
+
+router.get('/revenue/total/monthly', getTotalMonthlyRevenue);
+
+router.get('/revenue/total/yearly', getTotalYearlyRevenue);
+
+router.get('/revenue/movies/weekly', getWeeklyRevenueByMovie);
+router.get('/revenue/showtimes', getRevenueByShowtime);
 
 module.exports = router;

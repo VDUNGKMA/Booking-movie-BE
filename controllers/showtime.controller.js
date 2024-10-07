@@ -357,3 +357,25 @@ exports.getShowtimesCustomer = async (req, res) => {
         res.status(500).json({ message: 'Lỗi server' });
     }
 };
+exports.getShowtimesByTheaterAndDateByStaff = async (req, res) => {
+    try {
+        const { theaterId } = req.params;
+        const { date } = req.query; // Truyền ngày vào từ query params
+
+        const showtimes = await Showtime.findAll({
+            where: {
+                theater_id: theaterId,
+                start_time: {
+                    [Op.gte]: new Date(date), // Chỉ lấy suất chiếu bắt đầu từ ngày hiện tại
+                    [Op.lt]: new Date(new Date(date).setDate(new Date(date).getDate() + 1)) // Đến cuối ngày
+                }
+            },  
+            attributes: ['id', 'start_time', 'end_time']
+        });
+
+        res.json(showtimes);
+    } catch (error) {
+        console.error('Error fetching showtimes by theater and date:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};

@@ -598,7 +598,9 @@ const User = db.User;
 const Showtime = db.Showtime;
 const Cinema = db.Cinema;
 const Seat = db.Seat;
-
+const Theater = db.Theater;
+const Payment = db.Payment;
+const Movie = db.Movie
 // Import sequelize từ db
 const sequelize = db.sequelize;
 
@@ -904,3 +906,217 @@ exports.cancelTicket = async (req, res) => {
         res.status(500).json({ status: 'fail', message: 'Lỗi khi hủy vé.' });
     }
 };
+// GET /api/staff/ticket/scan
+// exports.scanTicketByQRCode = async (req, res) => {
+//     try {
+//         const { qrData } = req.body; // QR code chứa mã ticket hoặc ID
+
+//         const qrContent = JSON.parse(qrData); // Giả sử mã QR chứa JSON data
+//         const { ticketId } = qrContent;
+
+//         const ticket = await Ticket.findOne({
+//             where: { id: ticketId },
+//             include: [
+//                 { model: User, as: 'UserData', attributes: ['username', 'email'] },
+//                 {
+//                     model: Showtime, as: 'showtime', attributes: ['start_time', 'end_time'],
+//                     include: [
+//                         { model: Movie, as: 'movie', attributes: ['title'] },
+//                         {
+//                             model: Theater, as: 'theater', attributes: ['name'],
+//                             include: [{ model: Cinema, as: 'cinema', attributes: ['name'] }]
+//                         }
+//                     ]
+//                 },
+//                 { model: Seat, as: 'seats', attributes: ['row', 'number'] },
+//             ],
+//         });
+
+//         if (!ticket) {
+//             return res.status(404).json({ message: 'Ticket not found' });
+//         }
+
+//         res.status(200).json({ ticket });
+//     } catch (error) {
+//         console.error('Error scanning ticket:', error);
+//         res.status(500).json({ message: 'Error scanning ticket' });
+//     }
+// };
+// // PATCH /api/staff/ticket/validate/:ticketId
+// exports.validateTicket = async (req, res) => {
+//     try {
+//         const { ticketId } = req.params;
+
+//         const ticket = await Ticket.findOne({
+//             where: { id: ticketId, status: 'confirmed', payment_status: 'completed' },
+//         });
+
+//         if (!ticket) {
+//             return res.status(404).json({ message: 'Ticket is invalid or already used' });
+//         }
+
+//         // Cập nhật trạng thái vé là 'used'
+//         ticket.status = 'used';
+//         await ticket.save();
+
+//         res.status(200).json({ message: 'Ticket is valid and confirmed', ticket });
+//     } catch (error) {
+//         console.error('Error validating ticket:', error);
+//         res.status(500).json({ message: 'Error validating ticket' });
+//     }
+// };
+
+exports.scanTicket = async (req, res) => {
+    const { qrData } = req.body;
+
+    if (!qrData) {
+        return res.status(400).json({ message: 'QR data is missing' });
+    }
+
+    try {
+        const parsedData = JSON.parse(qrData);
+        const { ticketId } = parsedData;
+
+        if (!ticketId) {
+            return res.status(400).json({ message: 'Invalid QR data format' });
+        }
+
+        const ticket = await Ticket.findOne({
+            where: { id: ticketId },
+            include: [
+                {
+                    model: User,
+                    as: 'UserData',
+                    attributes: ['username', 'email'],
+                },
+                {
+                    model: Showtime,
+                    as: 'showtime',
+                    attributes: ['start_time', 'end_time'],
+                    include: [
+                        {
+                            model: Movie,
+                            as: 'movie', // Thêm alias movie để lấy title của phim
+                            attributes: ['title'],
+                        },
+                        {
+                            model: Theater,
+                            as: 'theater',
+                            attributes: ['name'],
+                            include: [
+                                {
+                                    model: Cinema,
+                                    as: 'cinema',
+                                    attributes: ['name'],
+                                },
+                            ],
+                        },
+                    ],
+                },
+                {
+                    model: Seat,
+                    as: 'seats',
+                    attributes: ['row', 'number'],
+                },
+                {
+                    model: Payment,
+                    as: 'payment',
+                    attributes: ['amount', 'status', 'payment_method'],
+                },
+            ],
+        });
+
+        if (!ticket) {
+            return res.status(404).json({ message: 'Ticket not found' });
+        }
+
+        // Chuẩn bị dữ liệu để trả về từ API
+        const response = {
+            ticketId: ticket.id,
+            user: ticket.UserData,
+            bookingTime: ticket.reserved_at,
+            movie: ticket.showtime.movie.title, // Lấy title của phim từ showtime.movie
+            cinema: ticket.showtime.theater.cinema.name,
+            theater: ticket.showtime.theater.name,
+            seats: ticket.seats.map(seat => `${seat.row}-${seat.number}`).join(', '),
+            price: ticket.price,
+            startTime: ticket.showtime.start_time,
+            endTime: ticket.showtime.end_time,
+            paymentStatus: ticket.payment.status,
+        };
+
+        res.status(200).json({
+            message: 'Scan successful',
+            data: response,
+        });
+    } catch (error) {
+        console.error('Error in scanTicket:', error);
+        res.status(500).json({ message: 'Failed to scan QR code', error: error.message });
+    }
+};
+
+exports.validateTicket = async (req, res) => {
+    const { ticketId } = req.params;
+
+    if (!ticketId) {
+        return res.status(400).json({ message: 'Ticket ID is required' });
+    }
+
+    try {
+        const ticket = await Ticket.findOne({
+            where: { id: ticketId, status: 'confirmed', payment_status: 'completed' },
+            include: [
+                {
+                    model: User,
+                    as: 'UserData', // Sử dụng alias UserData
+                    attributes: ['username', 'email'],
+                },
+                {
+                    model: Showtime,
+                    as: 'showtime', // Sử dụng alias showtime
+                    attributes: ['start_time', 'end_time'],
+                    include: [
+                        {
+                            model: Theater,
+                            as: 'theater', // Sử dụng alias theater
+                            attributes: ['name'],
+                            include: [
+                                {
+                                    model: Cinema,
+                                    as: 'cinema', // Sử dụng alias cinema
+                                    attributes: ['name'],
+                                },
+                            ],
+                        },
+                    ],
+                },
+                {
+                    model: Seat,
+                    as: 'seats', // Sử dụng alias seats
+                    attributes: ['row', 'number'],
+                },
+            ],
+        });
+
+        if (!ticket) {
+            return res.status(404).json({ message: 'Invalid or expired ticket' });
+        }
+
+        res.status(200).json({
+            message: 'Ticket validated successfully',
+            data: {
+                ticketId: ticket.id,
+                user: ticket.UserData,
+                showtime: ticket.showtime,
+                theater: ticket.showtime.theater,
+                cinema: ticket.showtime.theater.cinema,
+                seats: ticket.seats.map(seat => `${seat.row}-${seat.number}`).join(', '),
+                price: ticket.price,
+            },
+        });
+    } catch (error) {
+        console.error('Error in validateTicket:', error);
+        res.status(500).json({ message: 'Failed to validate ticket', error: error.message });
+    }
+};
+

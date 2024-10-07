@@ -28,11 +28,6 @@ const Seat = sequelize.define('Seat', {
         type: DataTypes.ENUM('Normal', 'VIP', 'Couple'),
         allowNull: false
     },
-    // status: {
-    //     type: DataTypes.ENUM('available', 'reserved', 'booked'),
-    //     allowNull: false,
-    //     defaultValue: 'available'
-    // },
     price: {
         type: DataTypes.INTEGER,
         allowNull: false
@@ -43,7 +38,11 @@ const Seat = sequelize.define('Seat', {
 });
 
 Seat.associate = (models) => {
-    Seat.belongsTo(models.Theater, { foreignKey: 'theater_id', as: 'theater' });
+    // Seat.belongsTo(models.Theater, { foreignKey: 'theater_id', as: 'theater' });
+    Seat.belongsTo(models.Theater, {
+        foreignKey: 'theater_id',
+        as: 'theater'
+    });
     // Quan hệ một-nhiều giữa Seat và Tickets (nếu có)
     // Seat.hasMany(models.Ticket, { foreignKey: 'seat_id', as: 'tickets' });
     Seat.belongsToMany(models.Ticket, {

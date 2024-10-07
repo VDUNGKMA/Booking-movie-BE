@@ -53,12 +53,6 @@ Showtime.associate = function (models) {
         onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
     });
-    // Showtime.hasMany(models.Seat, {
-    //     foreignKey: 'showtime_id',
-    //     as: 'seats',
-    //     onDelete: 'CASCADE',
-    //     onUpdate: 'CASCADE'
-    // });
     // Quan hệ với Tickets (nếu có)
     Showtime.hasMany(models.Ticket, { foreignKey: 'showtime_id', as: 'tickets' });
 };

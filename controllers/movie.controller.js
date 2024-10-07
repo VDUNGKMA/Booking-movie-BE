@@ -7,7 +7,7 @@ const Showtime = db.Showtime
 const Cinema = db.Cinema;
 const Theater = db.Theater
 const { cloudinary } = require('../config/cloudinary');
-
+const { Op } = require('sequelize');
 // Controller để tạo phim và tải ảnh, video lên Cloudinary
 exports.createMovie = async (req, res) => {
     try {
@@ -410,3 +410,84 @@ exports.getCinemasByMovie = async (req, res) => {
 //         res.status(500).json({ status: 'fail', message: 'Lỗi khi lấy danh sách rạp cho phim.' });
 //     }
 // };
+// Hàm tìm kiếm phim chỉ theo tên
+exports.searchMoviesByTitle = async (req, res) => {
+    try {
+        // Lấy từ khóa tìm kiếm từ query string
+        const { title } = req.query;
+        console.log("check titile", title)
+        // Kiểm tra xem từ khóa có tồn tại
+        if (!title) {
+            return res.status(400).json({ message: 'Please provide a valid search term (at least 1 character).' });
+        }
+
+        // Tìm kiếm phim theo tên với điều kiện LIKE
+        const movies = await Movie.findAll({
+            where: {
+                title: {
+                    [Op.like]: `%${title}%`  // Tìm kiếm theo tên phim gần đúng
+                }
+            }
+        });
+
+        // Trả về kết quả nếu tìm thấy phim
+        if (movies.length > 0) {
+            return res.status(200).json(movies);
+        } else {
+            return res.status(404).json({ message: 'No movies found' });
+        }
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Internal Server Error' });
+    }
+};
+exports.getCurrentMovies = async (req, res) => {
+    try {
+        const today = new Date();
+
+        const movies = await Movie.findAll({
+            where: {
+                release_date: { [Op.lte]: today },  // Ngày phát hành đã qua
+            }
+        });
+
+        // Lọc phim đang chiếu dựa trên release_date và duration
+        const currentMovies = movies.filter(movie => {
+            const endDate = new Date(movie.release_date);
+            endDate.setDate(endDate.getDate() + movie.duration); // Tính end_date bằng cách cộng duration vào release_date
+            return endDate >= today; // Chỉ chọn các phim có end_date sau ngày hiện tại
+        });
+
+        if (currentMovies.length > 0) {
+            return res.status(200).json(currentMovies);
+        } else {
+            return res.status(404).json({ message: 'No current movies found' });
+        }
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Internal Server Error' });
+    }
+};
+
+//hàm lấy phim sắp chiếu
+exports.getUpcomingMovies = async (req, res) => {
+    try {
+        const today = new Date();
+
+        const movies = await Movie.findAll({
+            where: {
+                release_date: { [Op.gt]: today }  // Ngày phát hành trong tương lai
+            }
+        });
+
+        if (movies.length > 0) {
+            return res.status(200).json(movies);
+        } else {
+            return res.status(404).json({ message: 'No upcoming movies found' });
+        }
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Internal Server Error' });
+    }
+};

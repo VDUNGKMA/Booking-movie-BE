@@ -35,21 +35,26 @@ Theater.associate = (models) => {
         onUpdate: 'CASCADE',
     });
 
-    // Quan hệ nhiều-nhiều giữa Theaters và Seats
-    Theater.belongsToMany(models.Seat, {
-        through: 'TheaterSeats',
-        foreignKey: 'theater_id',
-        as: 'seats',
-        onDelete: 'CASCADE', // Thêm dòng này
-        onUpdate: 'CASCADE',
-    });
+    // // Quan hệ nhiều-nhiều giữa Theaters và Seats
+    // Theater.belongsToMany(models.Seat, {
+    //     through: 'TheaterSeats',
+    //     foreignKey: 'theater_id',
+    //     as: 'seats',
+    //     onDelete: 'CASCADE', // Thêm dòng này
+    //     onUpdate: 'CASCADE',
+    // });
 
     // Quan hệ 1-nhiều giữa Theaters và Screenings
     // Theater.hasMany(models.Screening, {
     //     foreignKey: 'theater_id', 
     //     onDelete: 'CASCADE', // Thêm dòng này
     //     onUpdate: 'CASCADE', });
-
+    Theater.hasMany(models.Seat, {
+        foreignKey: 'theater_id', // Mối quan hệ trực tiếp
+        as: 'seats',
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+    });
     // Quan hệ n-1 giữa Theaters và Cinemas
     Theater.belongsTo(models.Cinema, {
         foreignKey: 'cinema_id', as: 'cinema',

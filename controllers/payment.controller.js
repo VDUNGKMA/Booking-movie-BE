@@ -239,6 +239,11 @@ const { QRCode: QRCodeModel, Ticket, Payment } = db;
 const { generateAccessToken } = require('../config/paypalClient');
 const QRCodeGenerator = require('qrcode'); // Đảm bảo đã cài đặt 'qrcode' npm package
 const Seat = db.Seat;
+const Theater = db.Theater;
+const Showtime = db.Showtime;
+const Cinema = db.Cinema;
+const Movie = db.Movie;
+const User = db.User;
 /**
  * Hàm tạo đơn hàng PayPal
  */
@@ -933,18 +938,143 @@ const fetch = require('node-fetch'); // Đảm bảo đã cài đặt 'node-fetc
 //     }
 // };
 
+// exports.executePayment = async (req, res) => {
+//     const { token } = req.query; // Nhận token từ query parameter
+
+//     if (!token) {
+//         return res.status(400).json({ message: 'Invalid token' });
+//     }
+
+//     try {
+//         // Lấy access token từ PayPal
+//         const accessToken = await generateAccessToken();
+
+//         // Gửi yêu cầu xác nhận giao dịch đến PayPal
+//         const response = await fetch(`${process.env.PAYPAL_BASE_URL}/v2/checkout/orders/${token}/capture`, {
+//             method: 'POST',
+//             headers: {
+//                 'Content-Type': 'application/json',
+//                 'Authorization': `Bearer ${accessToken}`,
+//             },
+//         });
+
+//         const captureData = await response.json();
+//         console.log('PayPal Capture Response:', captureData);
+
+//         if (!response.ok) {
+//             const errorDetails = captureData || { message: 'Unknown error' };
+//             throw new Error(`Error capturing payment: ${errorDetails.message || response.statusText}`);
+//         }
+
+//         // Kiểm tra trạng thái giao dịch
+//         if (captureData.status === 'COMPLETED') {
+//             // Lấy reference_id từ purchase_units
+//             const purchaseUnit = captureData.purchase_units && captureData.purchase_units[0];
+//             const referenceId = purchaseUnit ? purchaseUnit.reference_id : null;
+
+//             if (!referenceId) {
+//                 throw new Error('Missing reference_id in purchase_units');
+//             }
+
+//             // Trích xuất userId và ticketId từ reference_id
+//             const [userPart, ticketPart] = referenceId.split('-ticket-');
+
+//             if (!userPart || !ticketPart) {
+//                 throw new Error('Invalid reference_id format');
+//             }
+
+//             const userId = parseInt(userPart.replace('user-', ''), 10);
+//             const ticketId = parseInt(ticketPart, 10);
+
+//             // Tìm vé trong cơ sở dữ liệu với alias 'seats'
+//             const ticket = await Ticket.findOne({
+//                 where: { id: ticketId, user_id: userId },
+//                 include: [{
+//                     model: Seat,
+//                     as: 'seats', // Sử dụng alias đã định nghĩa trong model
+//                 }],
+//             });
+
+//             if (!ticket) {
+//                 return res.status(404).json({ message: 'Ticket does not exist' });
+//             }
+
+//             // Kiểm tra trạng thái thanh toán hiện tại
+//             if (ticket.payment_status !== 'pending') {
+//                 return res.status(400).json({ message: 'Payment is not pending and cannot be processed' });
+//             }
+
+//             // Cập nhật trạng thái thanh toán của vé thành 'completed'
+//             ticket.payment_status = 'completed';
+//             ticket.payment_method = 'PayPal';
+//             await ticket.save();
+
+//             // Lưu thông tin thanh toán vào cơ sở dữ liệu
+//             const payment = await Payment.create({
+//                 user_id: userId,
+//                 ticket_id: ticketId,
+//                 amount: parseFloat(captureData.purchase_units[0].payments.captures[0].amount.value),
+//                 payment_method: 'PayPal',
+//                 status: captureData.status,
+//             });
+
+//             if (payment) {
+//                 const qrData = {
+//                     ticketId: ticketId,
+//                     userId: userId,
+//                     paymentId: payment.id,
+//                     // Các thông tin khác nếu cần
+//                 };
+
+//                 // Tạo QR code dưới dạng Data URL
+//                 const qrCodeDataURL = await QRCodeGenerator.toDataURL(JSON.stringify(qrData));
+
+//                 // Lưu vào bảng QRCode
+//                 const qrCodeEntry = await QRCodeModel.create({
+//                     ticket_id: ticketId,
+//                     code: qrCodeDataURL,
+//                 });
+
+//                 return res.status(200).json({
+//                     message: 'Transaction successful',
+//                     details: captureData,
+//                     payment_id: payment.id,
+//                     userId,
+//                     ticketId,
+//                     qrCode: qrCodeEntry.code,
+//                 });
+//             } else {
+//                 res.status(400).json({
+//                     message: 'Transaction failed',
+//                     details: captureData,
+//                 });
+//             }
+//         } else {
+//             // Thanh toán thất bại, giải phóng ghế
+//             await handleFailedPayment(token);
+//             res.status(400).json({
+//                 message: 'Transaction failed',
+//                 details: captureData,
+//             });
+//         }
+//     } catch (err) {
+//         console.error('Error in executePayment:', err.message);
+//         res.status(500).json({
+//             message: 'An error occurred during the transaction',
+//             error: err.message,
+//         });
+//     }
+// };
 exports.executePayment = async (req, res) => {
-    const { token } = req.query; // Nhận token từ query parameter
+    const { token } = req.query;
 
     if (!token) {
         return res.status(400).json({ message: 'Invalid token' });
     }
 
     try {
-        // Lấy access token từ PayPal
         const accessToken = await generateAccessToken();
 
-        // Gửi yêu cầu xác nhận giao dịch đến PayPal
         const response = await fetch(`${process.env.PAYPAL_BASE_URL}/v2/checkout/orders/${token}/capture`, {
             method: 'POST',
             headers: {
@@ -957,13 +1087,9 @@ exports.executePayment = async (req, res) => {
         console.log('PayPal Capture Response:', captureData);
 
         if (!response.ok) {
-            const errorDetails = captureData || { message: 'Unknown error' };
-            throw new Error(`Error capturing payment: ${errorDetails.message || response.statusText}`);
+            throw new Error(`Error capturing payment: ${captureData.message || response.statusText}`);
         }
-
-        // Kiểm tra trạng thái giao dịch
         if (captureData.status === 'COMPLETED') {
-            // Lấy reference_id từ purchase_units
             const purchaseUnit = captureData.purchase_units && captureData.purchase_units[0];
             const referenceId = purchaseUnit ? purchaseUnit.reference_id : null;
 
@@ -971,40 +1097,61 @@ exports.executePayment = async (req, res) => {
                 throw new Error('Missing reference_id in purchase_units');
             }
 
-            // Trích xuất userId và ticketId từ reference_id
             const [userPart, ticketPart] = referenceId.split('-ticket-');
-
-            if (!userPart || !ticketPart) {
-                throw new Error('Invalid reference_id format');
-            }
-
             const userId = parseInt(userPart.replace('user-', ''), 10);
             const ticketId = parseInt(ticketPart, 10);
-
-            // Tìm vé trong cơ sở dữ liệu với alias 'seats'
+            console.log("check userId, TicketId", userId, ticketId)
             const ticket = await Ticket.findOne({
                 where: { id: ticketId, user_id: userId },
-                include: [{
-                    model: Seat,
-                    as: 'seats', // Sử dụng alias đã định nghĩa trong model
-                }],
+                include: [
+                    {
+                        model: Seat,
+                        as: 'seats',
+                        attributes: ['id', 'row', 'number'],
+                    },
+                    {
+                        model: Showtime,
+                        as: 'showtime',
+                        attributes: ['start_time', 'end_time'],
+                        include: [
+                            {
+                                model: Theater,
+                                as: 'theater',
+                                attributes: ['name'],
+                                include: [
+                                    {
+                                        model: Cinema,
+                                        as: 'cinema',
+                                        attributes: ['name'],
+                                    },
+                                ],
+                            },
+                            {
+                                model: Movie,
+                                as: 'movie',
+                                attributes: ['title'],
+                            },
+                        ],
+                    },
+                    {
+                        model: User,
+                        as: 'UserData',
+                        attributes: ['username', 'email'],
+                    },
+                ],
             });
-
             if (!ticket) {
                 return res.status(404).json({ message: 'Ticket does not exist' });
             }
 
-            // Kiểm tra trạng thái thanh toán hiện tại
             if (ticket.payment_status !== 'pending') {
                 return res.status(400).json({ message: 'Payment is not pending and cannot be processed' });
             }
 
-            // Cập nhật trạng thái thanh toán của vé thành 'completed'
             ticket.payment_status = 'completed';
             ticket.payment_method = 'PayPal';
             await ticket.save();
 
-            // Lưu thông tin thanh toán vào cơ sở dữ liệu
             const payment = await Payment.create({
                 user_id: userId,
                 ticket_id: ticketId,
@@ -1014,17 +1161,27 @@ exports.executePayment = async (req, res) => {
             });
 
             if (payment) {
+                // Chuẩn bị thông tin chi tiết để lưu vào mã QR
                 const qrData = {
                     ticketId: ticketId,
                     userId: userId,
                     paymentId: payment.id,
-                    // Các thông tin khác nếu cần
+                    user: {
+                        name: ticket.UserData.username,
+                        email: ticket.UserData.email,
+                    },
+                    bookingTime: ticket.createdAt,
+                    movie: ticket.showtime.movie.title,
+                    cinema: ticket.showtime.theater.cinema.name,
+                    theater: ticket.showtime.theater.name,
+                    seats: ticket.seats.map(seat => `${seat.row}-${seat.number}`).join(', '),
+                    price: captureData.purchase_units[0].payments.captures[0].amount.value,
+                    startTime: ticket.showtime.start_time,
+                    endTime: ticket.showtime.end_time,
                 };
 
-                // Tạo QR code dưới dạng Data URL
                 const qrCodeDataURL = await QRCodeGenerator.toDataURL(JSON.stringify(qrData));
 
-                // Lưu vào bảng QRCode
                 const qrCodeEntry = await QRCodeModel.create({
                     ticket_id: ticketId,
                     code: qrCodeDataURL,
@@ -1045,7 +1202,6 @@ exports.executePayment = async (req, res) => {
                 });
             }
         } else {
-            // Thanh toán thất bại, giải phóng ghế
             await handleFailedPayment(token);
             res.status(400).json({
                 message: 'Transaction failed',

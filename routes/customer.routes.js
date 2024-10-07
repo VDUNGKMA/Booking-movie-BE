@@ -22,7 +22,9 @@ router.get('/movies', movieController.getAllMovies);
 router.get('/movies/:id', movieController.getMovieById);
 router.get('/movies/:movieId/cinemas', movieController.getCinemasByMovie);
 router.get('/movie/:movieId/showtimes', getShowtimesCustomer)   
-
+router.get('/movie/search', movieController.searchMoviesByTitle)  
+router.get('/currentMovies',  movieController.getCurrentMovies);
+router.get('/upComingMovies', movieController.getUpcomingMovies);
 // Route liên quan đến Suất Chiếu
 router.get('/showtimes/:showtimeId/seats', getSeatsByShowtimeApi)
 // router.get('/screenings', protect, restrictTo(3), screeningController.getScreeningsByMovie);
