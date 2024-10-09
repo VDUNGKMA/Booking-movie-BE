@@ -66,7 +66,7 @@ async function releaseExpiredReservations() {
     console.log('Running reservation cleanup job...');
 
     // Xác định thời gian hết hạn (ví dụ: 15 phút trước)
-    const expirationTime = new Date(Date.now() - 15 * 60 * 1000); // 15 phút
+    const expirationTime = new Date(Date.now() - 5 * 60 * 1000); // 15 phút
 
     try {
         // Tìm các vé có trạng thái 'pending' và đã được đặt trước hơn 15 phút
@@ -85,7 +85,7 @@ async function releaseExpiredReservations() {
 
         for (const ticket of expiredTickets) {
             // Cập nhật trạng thái vé thành 'cancelled'
-            ticket.payment_status = 'cancelled';
+            ticket.payment_status = 'failed';
             await ticket.save();
 
             console.log(`Cancelled ticket ID: ${ticket.id}`);

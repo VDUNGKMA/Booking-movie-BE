@@ -7,6 +7,7 @@ const cinemaController = require('../controllers/cinema.controller');
 const { protect, restrictTo } = require('../middleware/authMiddleware');
 const { getTheatersByShowtime, getTheaters, getTheaterStatus, getTheatersByCinemaByStaff } = require('../controllers/theater.controller');
 const { getShowtimesByTheaterAndDateByStaff } = require('../controllers/showtime.controller');
+const { searchMovieShowtimes } = require('../controllers/movie.controller');
 
 // Chỉ nhân viên (role_id = 2) mới được truy cập
 
@@ -29,6 +30,7 @@ router.get('/theaters/:theaterId/showtimes/:showtimeId/status', getTheaterStatus
 router.get('/theaters/:theaterId/showtimes', getShowtimesByTheaterAndDateByStaff);
 router.post('/ticket/scan', ticketController.scanTicket);
 router.patch('/ticket/validate/:ticketId', ticketController.validateTicket);
+router.get('/movies/search-showtimes', searchMovieShowtimes);
 
 
 

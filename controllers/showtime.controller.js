@@ -237,61 +237,7 @@ exports.deleteShowtime = async (req, res) => {
     }
 };
 
-// const dayjs = require('dayjs');
-// const utc = require('dayjs/plugin/utc');
-// const timezone = require('dayjs/plugin/timezone');
-// // Kích hoạt các plugin
-// dayjs.extend(utc);
-// dayjs.extend(timezone);
-// exports.getShowtimesCustomer = async (req, res) => {
-//     const movieId = req.params.movieId;
-//     const date = req.query.date; // Có thể lọc theo ngày
 
-//     try {
-//         const whereClause = {};
-//         if (date) {
-//             const startOfDay = new Date(`${date}T00:00:00`);
-//             const endOfDay = new Date(`${date}T23:59:59`);
-//             whereClause.start_time = {
-//                 [Op.between]: [startOfDay, endOfDay]
-//             };
-//         }
-
-//         const showtimes = await Showtime.findAll({
-//             where: {
-//                 movie_id: movieId,
-//                 ...whereClause
-//             },
-//             include: [
-//                 {
-//                     model: Theater,
-//                     as: 'theater',
-//                     include: [
-//                         {
-//                             model: Cinema,
-//                             as: 'cinema'
-//                         }
-//                     ]
-//                 },
-//                 {
-//                     model: Movie,
-//                     as: 'movie',
-//                     attributes: ['title'] // Lấy thêm thông tin tiêu đề phim nếu cần
-//                 }
-//             ]
-//         });
-//         // Chuyển đổi thời gian từ UTC sang múi giờ 'Asia/Ho_Chi_Minh'
-//         const convertedShowtimes = showtimes.map(showtime => ({
-//             ...showtime.toJSON(),
-//             start_time: dayjs(showtime.start_time).tz('Asia/Ho_Chi_Minh').format(),
-//             end_time: dayjs(showtime.end_time).tz('Asia/Ho_Chi_Minh').format()
-//         }));
-//         res.json(convertedShowtimes);
-//     } catch (error) {
-//         console.error(error);
-//         res.status(500).json({ message: 'Lỗi server' });
-//     }
-// };
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
 const timezone = require('dayjs/plugin/timezone');
@@ -357,23 +303,43 @@ exports.getShowtimesCustomer = async (req, res) => {
         res.status(500).json({ message: 'Lỗi server' });
     }
 };
+
 exports.getShowtimesByTheaterAndDateByStaff = async (req, res) => {
     try {
         const { theaterId } = req.params;
         const { date } = req.query; // Truyền ngày vào từ query params
 
+        // Lấy thời gian hiện tại
+        const currentTime = new Date();
+
         const showtimes = await Showtime.findAll({
             where: {
                 theater_id: theaterId,
                 start_time: {
-                    [Op.gte]: new Date(date), // Chỉ lấy suất chiếu bắt đầu từ ngày hiện tại
+                    [Op.gte]: new Date(date), // Lấy các suất chiếu từ đầu ngày
                     [Op.lt]: new Date(new Date(date).setDate(new Date(date).getDate() + 1)) // Đến cuối ngày
                 }
-            },  
-            attributes: ['id', 'start_time', 'end_time']
+            },
+            attributes: ['id', 'start_time', 'end_time'],
+            include: [
+                {
+                    model: Movie,
+                    as: 'movie', // Đảm bảo alias chính xác
+                    attributes: ['title'] // Lấy tiêu đề phim
+                }
+            ]
         });
 
-        res.json(showtimes);
+        // Định dạng lại kết quả trả về và đánh dấu nếu suất chiếu đã kết thúc
+        const formattedShowtimes = showtimes.map(showtime => ({
+            id: showtime.id,
+            start_time: showtime.start_time,
+            end_time: showtime.end_time,
+            movieTitle: showtime.movie.title, // Tiêu đề phim
+            isFinished: showtime.end_time < currentTime // Đánh dấu là đã kết thúc nếu end_time nhỏ hơn thời gian hiện tại
+        }));
+
+        res.json(formattedShowtimes);
     } catch (error) {
         console.error('Error fetching showtimes by theater and date:', error);
         res.status(500).json({ message: 'Server error' });

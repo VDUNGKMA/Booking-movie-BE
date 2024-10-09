@@ -49,7 +49,7 @@
             },
         },
         status: { // Trạng thái đặt vé
-            type: DataTypes.ENUM('confirmed', 'cancelled'),
+            type: DataTypes.ENUM('confirmed', 'cancelled',  'used'),
             allowNull: false,
             defaultValue: 'confirmed'
         },
