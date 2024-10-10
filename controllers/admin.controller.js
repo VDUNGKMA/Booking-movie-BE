@@ -68,11 +68,46 @@ exports.getAllUsers = async (req, res) => {
 // controllers/admin.controller.js
 
 // Controller lấy tất cả người dùng theo role_id
+// exports.getUsersByRole = async (req, res) => {
+//     try {
+//         const roleId = parseInt(req.query.role_id, 10);
+
+//         // Kiểm tra nếu role_id hợp lệ
+//         if (isNaN(roleId) || roleId <= 0) {
+//             return res.status(400).json({
+//                 status: 'fail',
+//                 message: 'Invalid role_id'
+//             });
+//         }
+
+//         // Lấy người dùng theo role_id
+//         const users = await User.findAll({
+//             where: { role_id: roleId },
+//             attributes: ['id', 'username', 'email', 'phone_number', 'role_id', 'image']
+//         });
+
+//         res.status(200).json({
+//             status: 'success',
+//             results: users.length,
+//             data: {
+//                 users
+//             }
+//         });
+//     } catch (error) {
+//         res.status(500).json({
+//             status: 'error',
+//             message: error.message
+//         });
+//     }
+// };
 exports.getUsersByRole = async (req, res) => {
     try {
         const roleId = parseInt(req.query.role_id, 10);
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const search = req.query.search || ''; // Search query
+        const offset = (page - 1) * limit;
 
-        // Kiểm tra nếu role_id hợp lệ
         if (isNaN(roleId) || roleId <= 0) {
             return res.status(400).json({
                 status: 'fail',
@@ -80,17 +115,31 @@ exports.getUsersByRole = async (req, res) => {
             });
         }
 
-        // Lấy người dùng theo role_id
-        const users = await User.findAll({
-            where: { role_id: roleId },
-            attributes: ['id', 'username', 'email', 'phone_number', 'role_id', 'image']
+        // Include search condition for username or email
+        const whereCondition = {
+            role_id: roleId,
+            ...(search && {
+                [Op.or]: [
+                    { username: { [Op.like]: `%${search}%` } },
+                    { email: { [Op.like]: `%${search}%` } }
+                ]
+            })
+        };
+
+        const { count, rows: users } = await User.findAndCountAll({
+            where: whereCondition,
+            attributes: ['id', 'username', 'email', 'phone_number', 'role_id', 'image'],
+            limit,
+            offset
         });
 
         res.status(200).json({
             status: 'success',
             results: users.length,
             data: {
-                users
+                users,
+                currentPage: page,
+                totalPages: Math.ceil(count / limit)
             }
         });
     } catch (error) {

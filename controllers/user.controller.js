@@ -228,7 +228,6 @@ exports.logout = async (req, res) => {
         // Xoá token từ session hoặc cookies nếu sử dụng
         res.clearCookie('jwt'); // Nếu bạn lưu token trong cookies
         req.session = null; // Xoá session nếu sử dụng session-based auth
-
         res.status(200).json({
             status: 'success',
             message: 'Logged out successfully'

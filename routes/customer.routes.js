@@ -44,6 +44,7 @@ router.get('/cancel-payment', cancelPayment);
 
 // Route liên quan đến Vé
 router.post('/tickets', ticketController.createTicketApi);
+router.get('/users/:userId/booking-history', ticketController.getBookingHistory);
 //router.post('/tickets', protect, restrictTo(3), ticketController.bookTicket);
 //router.get('/tickets/:id', protect, restrictTo(3), ticketController.getTicketByCustomer);
 //router.get('/tickets', protect, restrictTo(3), ticketController.getCustomerTickets);

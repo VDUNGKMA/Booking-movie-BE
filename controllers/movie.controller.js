@@ -491,12 +491,80 @@ exports.getUpcomingMovies = async (req, res) => {
         return res.status(500).json({ message: 'Internal Server Error' });
     }
 };
+// exports.searchMovieShowtimes = async (req, res) => {
+//     try {
+//         const { movieTitle, date } = req.query;
+
+//         // Tìm kiếm phim theo tiêu đề không phân biệt chữ hoa chữ thường
+//         const movie = await Movie.findOne({
+//             where: {
+//                 title: {
+//                     [Op.like]: `%${movieTitle}%` 
+//                 }
+//             },
+//             attributes: ['id', 'title']
+//         });
+
+//         if (!movie) {
+//             return res.status(404).json({ message: 'Movie not found' });
+//         }
+
+//         // Truy vấn suất chiếu cho phim theo ngày đã chọn
+//         const showtimes = await Showtime.findAll({
+//             where: {
+//                 movie_id: movie.id,
+//                 start_time: {
+//                     [Op.between]: [
+//                         new Date(date).setHours(0, 0, 0, 0),
+//                         new Date(date).setHours(23, 59, 59, 999)
+//                     ]
+//                 }
+//             },
+//             attributes: ['id', 'start_time', 'end_time'],
+//             include: [
+//                 {
+//                     model: Theater,
+//                     as: 'theater',
+//                     attributes: ['id', 'name'],
+//                     include: [
+//                         {
+//                             model: Cinema,
+//                             as: 'cinema',
+//                             attributes: ['id', 'name']
+//                         }
+//                     ]
+//                 }
+//             ]
+//         });
+
+//         res.json({
+//             movieId: movie.id,
+//             title: movie.title,
+//             showtimes: showtimes.map(showtime => ({
+//                 showtimeId: showtime.id,
+//                 startTime: showtime.start_time,
+//                 endTime: showtime.end_time,
+//                 theater: {
+//                     id: showtime.theater.id,
+//                     name: showtime.theater.name,
+//                     cinema: {
+//                         id: showtime.theater.cinema.id,
+//                         name: showtime.theater.cinema.name
+//                     }
+//                 }
+//             }))
+//         });
+//     } catch (error) {
+//         console.error('Error searching movie showtimes:', error);
+//         res.status(500).json({ message: 'Server error' });
+//     }
+// };
 exports.searchMovieShowtimes = async (req, res) => {
     try {
         const { movieTitle, date } = req.query;
 
-        // Tìm kiếm phim theo tiêu đề không phân biệt chữ hoa chữ thường
-        const movie = await Movie.findOne({
+        // Tìm tất cả các phim có tiêu đề khớp với từ khóa
+        const movies = await Movie.findAll({
             where: {
                 title: {
                     [Op.like]: `%${movieTitle}%` // Sử dụng LIKE thay vì ILIKE
@@ -505,55 +573,61 @@ exports.searchMovieShowtimes = async (req, res) => {
             attributes: ['id', 'title']
         });
 
-        if (!movie) {
-            return res.status(404).json({ message: 'Movie not found' });
+        if (!movies.length) {
+            return res.status(404).json({ message: 'No movies found' });
         }
 
-        // Truy vấn suất chiếu cho phim theo ngày đã chọn
-        const showtimes = await Showtime.findAll({
-            where: {
-                movie_id: movie.id,
-                start_time: {
-                    [Op.between]: [
-                        new Date(date).setHours(0, 0, 0, 0),
-                        new Date(date).setHours(23, 59, 59, 999)
-                    ]
-                }
-            },
-            attributes: ['id', 'start_time', 'end_time'],
-            include: [
-                {
-                    model: Theater,
-                    as: 'theater',
-                    attributes: ['id', 'name'],
+        // Tạo một mảng chứa tất cả các suất chiếu cho từng phim
+        const showtimesData = await Promise.all(
+            movies.map(async (movie) => {
+                const showtimes = await Showtime.findAll({
+                    where: {
+                        movie_id: movie.id,
+                        start_time: {
+                            [Op.between]: [
+                                new Date(date).setHours(0, 0, 0, 0),
+                                new Date(date).setHours(23, 59, 59, 999)
+                            ]
+                        }
+                    },
+                    attributes: ['id', 'start_time', 'end_time'],
                     include: [
                         {
-                            model: Cinema,
-                            as: 'cinema',
-                            attributes: ['id', 'name']
+                            model: Theater,
+                            as: 'theater',
+                            attributes: ['id', 'name'],
+                            include: [
+                                {
+                                    model: Cinema,
+                                    as: 'cinema',
+                                    attributes: ['id', 'name']
+                                }
+                            ]
                         }
                     ]
-                }
-            ]
-        });
+                });
 
-        res.json({
-            movieId: movie.id,
-            title: movie.title,
-            showtimes: showtimes.map(showtime => ({
-                showtimeId: showtime.id,
-                startTime: showtime.start_time,
-                endTime: showtime.end_time,
-                theater: {
-                    id: showtime.theater.id,
-                    name: showtime.theater.name,
-                    cinema: {
-                        id: showtime.theater.cinema.id,
-                        name: showtime.theater.cinema.name
-                    }
-                }
-            }))
-        });
+                return {
+                    movieId: movie.id,
+                    title: movie.title,
+                    showtimes: showtimes.map(showtime => ({
+                        showtimeId: showtime.id,
+                        startTime: showtime.start_time,
+                        endTime: showtime.end_time,
+                        theater: {
+                            id: showtime.theater.id,
+                            name: showtime.theater.name,
+                            cinema: {
+                                id: showtime.theater.cinema.id,
+                                name: showtime.theater.cinema.name
+                            }
+                        }
+                    }))
+                };
+            })
+        );
+
+        res.json(showtimesData);
     } catch (error) {
         console.error('Error searching movie showtimes:', error);
         res.status(500).json({ message: 'Server error' });
