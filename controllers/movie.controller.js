@@ -447,6 +447,14 @@ exports.getCurrentMovies = async (req, res) => {
         const today = new Date();
 
         const movies = await Movie.findAll({
+            include: [
+                {
+                    model: Genre,
+                    as: 'genres', // Phải khớp với alias trong model
+                    attributes: ['id', 'genre_name'],
+                    through: { attributes: [] },
+                },
+            ],
             where: {
                 release_date: { [Op.lte]: today },  // Ngày phát hành đã qua
             }

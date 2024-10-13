@@ -8,9 +8,6 @@ const {
     updateUser,
     deleteUser,
     getUsersByRole,
-    getDailyRevenueByCinema,
-    getMonthlyRevenueByCinema,
-    getYearlyRevenueByCinema,
     getTotalDailyRevenue,
     getTotalMonthlyRevenue,
     getTotalYearlyRevenue,
@@ -23,18 +20,17 @@ const {
 const movieController = require('../controllers/movie.controller');
 const showtimeController = require('../controllers/showtime.controller')
 const genreController = require('../controllers/genre.controller');
-const screeningController = require('../controllers/screening.controller');
 const theaterController = require('../controllers/theater.controller');
 const seatController = require('../controllers/seat.controller');
 const ticketController = require('../controllers/ticket.controller');
-const paymentController = require('../controllers/payment.controller');
 const cinemaController = require('../controllers/cinema.controller');
 const seatCategoryController = require('../controllers/seatcategory.controller');
 const userController = require('../controllers/user.controller')
 const { upload } = require('../config/cloudinary'); // Import middleware upload từ cloudinary.js
-
+const upload1 = require('../config/multer');  // import middleware upload tu multer
 const router = express.Router();
-
+ /*Phần upload ảnh người dùng đc upload trong thư mục dự án này 
+ còn phần ảnh poster phim, video , ảnh rạp chiếu đc lưu trên cloudiary */
 // Chỉ admin (role_id = 1) mới có quyền truy cập
 
 // Quản lý người dùng
@@ -43,7 +39,8 @@ router.post(
     '/register-staff',
     protect,
     restrictTo(1),
-    upload.fields([{ name: 'image', maxCount: 1 }]),
+    upload1.fields([{ name: 'image', maxCount: 1 }]),
+    upload1.afterUpload,  
     registerStaff
 );
 
@@ -61,7 +58,8 @@ router.put(
     '/users/:id',
     protect,
     restrictTo(1),
-    upload.fields([{ name: 'image', maxCount: 1 }]),
+    upload1.fields([{ name: 'image', maxCount: 1 }]),
+    upload1.afterUpload,  
     updateUser
 );
 
@@ -106,12 +104,6 @@ router.delete('/genres/:id', protect, restrictTo(1), genreController.deleteGenre
 router.get('/genres', genreController.getAllGenres);
 
 // Quản lý suất chiếu
-// router.post('/screenings', protect, restrictTo(1), screeningController.createScreening);
-// router.put('/screenings/:id', protect, restrictTo(1), screeningController.updateScreening);
-// router.delete('/screenings/:id', protect, restrictTo(1), screeningController.deleteScreening);
-// // Route lấy danh sách suất chiếu với phân trang
-// router.get('/theaters/:theaterId/showtimes', showtimeController.getShowtimes);
-
 // 1. Lấy danh sách suất chiếu với phân trang, sắp xếp và tìm kiếm
 router.get('/showtimes', showtimeController.getShowtimes);
 
@@ -151,28 +143,13 @@ router.delete('/theaters/:theaterId/seats/:seatId', protect, restrictTo(1), seat
 router.get('/theaters/:theaterId/seats', seatController.getSeatsByTheater);
 // Route lấy danh sách ghế với phân trang cho quản trị viên
 router.get('/theaters/:theaterId/seats/admin', seatController.getSeatsByTheaterAdmin);
-// router.patch('/theaters/:theaterId/seats/:seatId/status', seatController.updateSeatStatus);
-// Thêm route để lấy danh sách ghế theo suất chiếu
-// router.get('/:showtimeId/seats', seatController.getSeatsByShowtime);
-// Quản lý vé
-// router.get('/tickets', protect, restrictTo(1), ticketController.getTickets);
-// router.post('/tickets', ticketController.createTicket);
+
 
 // Lấy danh sách vé
 // router.get('/tickets', ticketController.getTickets);
 router.get('/tickets', ticketController.getTicketsForAdmin);
 // Route để hủy vé
 router.patch('/tickets/:ticketId/cancel', ticketController.cancelTicket);
-// Lấy một vé theo ID
-// router.get('/tickets/:ticketId', ticketController.getTicketById);
-
-// Hủy vé
-// router.patch('/:ticketId/cancel', ticketController.cancelTicket);
-// Quản lý hóa đơn
-// router.get('/payments', protect, restrictTo(1), paymentController.getPayments);
-
-
-
 
 // Quản lý danh mục ghế ngồi
 // Thêm danh mục ghế ngồi
@@ -184,25 +161,7 @@ router.put('/seat-categories/:id', protect, restrictTo(1), seatCategoryControlle
 // Xóa danh mục ghế ngồi
 router.delete('/seat-categories/:id', protect, restrictTo(1), seatCategoryController.deleteSeatCategory);
 
-// router.get('/revenue/daily',  getDailyRevenue);
-// router.get('/revenue/monthly',  getMonthlyRevenue);
-// router.get('/revenue/yearly',  getYearlyRevenue);
-// router.get('/transactions', getTransactions);
-// router.get('/cinema/daily-revenue', getDailyRevenueByCinema);
 
-// // Lấy doanh thu theo tháng cho một rạp
-// router.get('/cinema/monthly-revenue', getMonthlyRevenueByCinema);
-
-// // Lấy doanh thu theo năm cho một rạp
-// router.get('/cinema/yearly-revenue', getYearlyRevenueByCinema)
-// // Tổng doanh thu theo ngày
-// router.get('/cinema/total-daily-revenue', getTotalDailyRevenue);
-
-// // Tổng doanh thu theo tháng
-// router.get('/cinema/total-monthly-revenue', getTotalMonthlyRevenue);
-
-// // Tổng doanh thu theo năm
-// router.get('/cinema/total-yearly-revenue', getTotalYearlyRevenue);
 // Route doanh thu theo ngày
 router.get('/revenue/daily', getDailyRevenue);
 // Route doanh thu theo tháng
@@ -218,6 +177,7 @@ router.get('/revenue/total/monthly', getTotalMonthlyRevenue);
 router.get('/revenue/total/yearly', getTotalYearlyRevenue);
 
 router.get('/revenue/movies/weekly', getWeeklyRevenueByMovie);
+
 router.get('/revenue/showtimes', getRevenueByShowtime);
 
 module.exports = router;

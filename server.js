@@ -11,6 +11,7 @@ const staffRoutes = require('./routes/staff.routes');
 const customerRoutes = require('./routes/customer.routes');
 const { protect } = require('./middleware/authMiddleware'); // Middleware để bảo vệ route bằng JWT
 const { getMe } = require('./controllers/user.controller'); // Hàm xử lý trong controller
+const uploadRoutes = require('./routes/upload.routes'); 
 // Khởi tạo ứng dụng Express
 const app = express();
 
@@ -39,6 +40,11 @@ app.use('/api/auth', authRoutes); // Route cho đăng ký, đăng nhập
 app.use('/api/admin', adminRoutes); // Route cho các hành động của admin
 app.use('/api/staff', staffRoutes);
 app.use('/api/customer', customerRoutes);
+// Đảm bảo rằng thư mục 'uploads' được phép truy cập công khai
+app.use('/uploads', express.static('uploads'));
+
+// Sử dụng các route tải ảnh
+app.use('/api/upload', uploadRoutes);
 // app.get('/api/user/me', protect, getMe); // Route lấy thông tin người dùng với bảo vệ JWT
 // Import và chạy cron job
 // require('./cron/reservationCleanup');

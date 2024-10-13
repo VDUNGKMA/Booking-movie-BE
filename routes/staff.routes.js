@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const ticketController = require('../controllers/ticket.controller');
 const seatController = require('../controllers/seat.controller');
-// const screeningController = require('../controllers/screening.controller');
+
 const cinemaController = require('../controllers/cinema.controller');
 const { protect, restrictTo } = require('../middleware/authMiddleware');
 const { getTheatersByShowtime, getTheaters, getTheaterStatus, getTheatersByCinemaByStaff } = require('../controllers/theater.controller');
