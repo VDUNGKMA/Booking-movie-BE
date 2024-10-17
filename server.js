@@ -9,6 +9,7 @@ const authRoutes = require('./routes/auth.routes'); // Import routes cho đăng 
 const adminRoutes = require('./routes/admin.routes'); // Import routes cho admin
 const staffRoutes = require('./routes/staff.routes');
 const customerRoutes = require('./routes/customer.routes');
+// const passport = require('./config/passport'); 
 const { protect } = require('./middleware/authMiddleware'); // Middleware để bảo vệ route bằng JWT
 const { getMe } = require('./controllers/user.controller'); // Hàm xử lý trong controller
 const uploadRoutes = require('./routes/upload.routes'); 
@@ -26,9 +27,16 @@ app.use(cors({
         'http://192.168.0.101:5000',
         'http://192.168.1.12:5000',
         'http://10.0.2.2:5000',
-        'http://192.168.1.14:5000'],  // Cho phép frontend từ localhost:5000 (nếu frontend React chạy trên cổng này)
+        'http://192.168.1.14:5000',
+        'http://localhost:3000'
+    ],  // Cho phép frontend từ localhost:5000 (nếu frontend React chạy trên cổng này)
     credentials: true                 // Cho phép gửi cookie, token, thông tin xác thực
 }));
+app.use((req, res, next) => {
+    res.removeHeader("Cross-Origin-Opener-Policy");
+    res.removeHeader("Cross-Origin-Embedder-Policy");
+    next();
+});
 
 // Đặt body-parser để xử lý các tệp lớn hơn (cho cả JSON và URL encoded)
 app.use(bodyParser.json({ limit: '1000mb' }));   // Tăng giới hạn cho các payload JSON
@@ -36,6 +44,9 @@ app.use(bodyParser.urlencoded({ limit: '1000mb', extended: true })); // Tăng gi
 // Middleware để xử lý JSON
 app.use(express.json());
 // Định nghĩa các route cho API
+// app.use(session({ secret: 'secret-key', resave: false, saveUninitialized: true }));
+// app.use(passport.initialize());
+// app.use(passport.session());
 app.use('/api/auth', authRoutes); // Route cho đăng ký, đăng nhập
 app.use('/api/admin', adminRoutes); // Route cho các hành động của admin
 app.use('/api/staff', staffRoutes);

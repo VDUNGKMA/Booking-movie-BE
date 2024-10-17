@@ -23,12 +23,12 @@ const User = sequelize.define('User', {
     },
     password: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: true
     },
     phone_number: {
         type: DataTypes.STRING
     },
-    image:{
+    image: {
         type: DataTypes.STRING
     },
     role_id: {
@@ -40,6 +40,10 @@ const User = sequelize.define('User', {
         allowNull: false,
         defaultValue: 3 // Mặc định là 'customer'
     },
+    googleId: {
+        type: DataTypes.STRING, // Để lưu ID từ Google
+        allowNull: true
+    },
     resetPasswordToken: {
         type: DataTypes.STRING,
         allowNull: true,  // Cho phép null khi chưa đặt lại mật khẩu
@@ -50,8 +54,13 @@ const User = sequelize.define('User', {
     }
 }, {
     hooks: {
+        // beforeCreate: async (user) => {
+        //     user.password = await bcrypt.hash(user.password, 10); // Mã hóa mật khẩu trước khi lưu
+        // }
         beforeCreate: async (user) => {
-            user.password = await bcrypt.hash(user.password, 10); // Mã hóa mật khẩu trước khi lưu
+            if (user.password) { // Chỉ mã hóa mật khẩu nếu có mật khẩu
+                user.password = await bcrypt.hash(user.password, 10);
+            }
         }
     }
 });

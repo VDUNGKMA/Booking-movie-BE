@@ -95,7 +95,7 @@ router.put(
 router.delete('/movies/:id', protect, restrictTo(1), movieController.deleteMovie);
 
 // Route để lấy danh sách tất cả phim
-router.get('/movies', movieController.getAllMovies);
+router.get('/movies', movieController.getAllMoviesApi);
 
 // Quản lý thể loại phim
 router.post('/genres', protect, restrictTo(1), genreController.createGenre);

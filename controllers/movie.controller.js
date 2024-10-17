@@ -227,6 +227,56 @@ exports.getAllMovies = async (req, res) => {
         });
     }
 };
+// Lấy danh sách phim đã phân trang
+exports.getAllMoviesApi = async (req, res) => {
+    try {
+        // Get pagination and search parameters
+        const page = parseInt(req.query.page, 10) || 1;
+        const limit = parseInt(req.query.limit, 10) || 10;
+        const search = req.query.search || ''; // Default to empty string if no search query
+        const offset = (page - 1) * limit;
+
+        // Build the search condition for title
+        const whereCondition = search
+            ? { title: { [Op.like]: `%${search}%` } } // Search for movies with titles matching search query
+            : {};
+
+        // Fetch movies with pagination, search, and genre inclusion
+        const { count, rows: movies } = await Movie.findAndCountAll({
+            where: whereCondition,
+            offset,
+            limit,
+            include: [
+                {
+                    model: Genre,
+                    as: 'genres',
+                    attributes: ['id', 'genre_name'],
+                    through: { attributes: [] },
+                },
+            ],
+        });
+
+        // Calculate total pages
+        const totalPages = Math.ceil(count / limit);
+
+        // Send the paginated and filtered response
+        res.status(200).json({
+            status: 'success',
+            data: {
+                movies,
+                currentPage: page,
+                totalPages,
+                totalMovies: count,
+            },
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            status: 'fail',
+            message: error.message,
+        });
+    }
+};
 
 // Lấy thông tin phim theo ID
 exports.getMovieById = async (req, res) => {

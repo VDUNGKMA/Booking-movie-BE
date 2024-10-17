@@ -225,3 +225,106 @@ exports.resetPassword = async (req, res) => {
         });
     }
 };
+
+// // Xử lý logic tìm kiếm hoặc tạo người dùng từ Google profile
+// exports.googleAuthHandler = async (accessToken, refreshToken, profile, done) => {
+//     try {
+//         // Tìm người dùng với Google ID
+//         let user = await User.findOne({ where: { googleId: profile.id } });
+
+//         // Nếu không tồn tại, tạo người dùng mới
+//         if (!user) {
+//             user = await User.create({
+//                 googleId: profile.id,
+//                 username: profile.displayName,
+//                 email: profile.emails[0].value,
+//                 image: profile.photos[0].value,
+//             });
+//         }
+//         done(null, user);
+//     } catch (error) {
+//         done(error, null);
+//     }
+// };
+
+// // Xử lý callback sau khi Google xác thực thành công
+// exports.googleCallback = async (req, res) => {
+//     try {
+//         const { clientId } = req.body;
+
+//         // Kiểm tra client ID từ request với client ID trong biến môi trường
+//         if (clientId !== process.env.GOOGLE_CLIENT_ID) {
+//             return res.status(400).json({
+//                 status: 'fail',
+//                 message: 'Invalid client ID',
+//             });
+//         }
+//         const token = createToken(req.user);
+//         res.status(200).json({
+//             status: 'success',
+//             token,
+//             data: {
+//                 user: req.user,
+//             },
+//         });
+//     } catch (error) {
+//         res.status(500).json({
+//             status: 'fail',
+//             message: 'Authentication failed.',
+//             error: error.message,
+//         });
+//     }
+// };
+
+// // Deserialize người dùng dựa trên ID
+// exports.deserializeUser = async (id, done) => {
+//     try {
+//         const user = await User.findByPk(id);
+//         done(null, user);
+//     } catch (error) {
+//         done(error, null);
+//     }
+// };
+const { OAuth2Client } = require('google-auth-library');
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+// Google Login API
+exports.googleLogin = async (req, res) => {
+    const { token } = req.body;
+
+    try {
+        // Verify Google token
+        const ticket = await client.verifyIdToken({
+            idToken: token,
+            audience: process.env.GOOGLE_CLIENT_ID,
+        });
+        const payload = ticket.getPayload();
+        const { sub, email, name, picture } = payload; // Google ID, email, name, and picture
+
+        // Find or create user
+        let user = await User.findOne({ where: { googleId: sub } });
+        if (!user) {
+            user = await User.create({
+                googleId: sub,
+                email,
+                username: name,
+                image: picture,
+                role_id: 3 // Default to customer role
+            });
+        }
+
+        // Create a JWT token for your app
+        const appToken = createToken(user);
+
+        res.status(200).json({
+            status: 'success',
+            token: appToken,
+            data: { user }
+        });
+    } catch (error) {
+        console.error('Google login error:', error);
+        res.status(401).json({
+            status: 'fail',
+            message: 'Google authentication failed',
+        });
+    }
+};
