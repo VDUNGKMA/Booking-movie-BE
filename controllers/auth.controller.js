@@ -44,7 +44,7 @@ exports.registerCustomer = async (req, res) => {
 
         // Tạo JWT token
         const token = createToken(newUser);
-        
+
         res.status(201).json({
             status: 'success',
             token,
@@ -52,7 +52,7 @@ exports.registerCustomer = async (req, res) => {
                 user: newUser
             }
         });
-        console.log("check user:",newUser)
+        console.log("check user:", newUser)
     } catch (error) {
         res.status(400).json({
             status: 'fail',
@@ -194,7 +194,7 @@ exports.verifyOTP = async (req, res) => {
 exports.resetPassword = async (req, res) => {
     try {
         const { email, newPassword } = req.body;
-        console.log("check email,new",email, newPassword)
+        console.log("check email,new", email, newPassword)
         // Find user by email
         const user = await User.findOne({ where: { email } });
 
