@@ -12,7 +12,7 @@ const customerRoutes = require('./routes/customer.routes');
 // const passport = require('./config/passport'); 
 const { protect } = require('./middleware/authMiddleware'); // Middleware để bảo vệ route bằng JWT
 const { getMe } = require('./controllers/user.controller'); // Hàm xử lý trong controller
-const uploadRoutes = require('./routes/upload.routes'); 
+const uploadRoutes = require('./routes/upload.routes');
 // Khởi tạo ứng dụng Express
 const app = express();
 
@@ -25,9 +25,9 @@ app.use(cors({
     origin: [process.env.URL_FRONTEND,
         'http://192.168.1.119:5000',
         'http://192.168.0.101:5000',
-        'http://192.168.1.12:5000',
+        'http://192.168.1.65:5000',
         'http://10.0.2.2:5000',
-        'http://192.168.1.14:5000',
+        'http://192.168.224.65:5000',
         'http://localhost:3000'
     ],  // Cho phép frontend từ localhost:5000 (nếu frontend React chạy trên cổng này)
     credentials: true                 // Cho phép gửi cookie, token, thông tin xác thực
@@ -43,10 +43,7 @@ app.use(bodyParser.json({ limit: '1000mb' }));   // Tăng giới hạn cho các 
 app.use(bodyParser.urlencoded({ limit: '1000mb', extended: true })); // Tăng giới hạn cho payload dạng form-data
 // Middleware để xử lý JSON
 app.use(express.json());
-// Định nghĩa các route cho API
-// app.use(session({ secret: 'secret-key', resave: false, saveUninitialized: true }));
-// app.use(passport.initialize());
-// app.use(passport.session());
+
 app.use('/api/auth', authRoutes); // Route cho đăng ký, đăng nhập
 app.use('/api/admin', adminRoutes); // Route cho các hành động của admin
 app.use('/api/staff', staffRoutes);
@@ -56,9 +53,7 @@ app.use('/uploads', express.static('uploads'));
 
 // Sử dụng các route tải ảnh
 app.use('/api/upload', uploadRoutes);
-// app.get('/api/user/me', protect, getMe); // Route lấy thông tin người dùng với bảo vệ JWT
-// Import và chạy cron job
-// require('./cron/reservationCleanup');
+
 const cron = require('node-cron');
 const releaseExpiredReservations = require('./cron/reservationCleanup');
 // Thiết lập cron job chạy mỗi phút
