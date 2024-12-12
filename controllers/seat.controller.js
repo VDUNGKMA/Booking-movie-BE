@@ -548,6 +548,40 @@ exports.getSeatsByShowtimeApi = async (req, res) => {
 //     }
 // };
 // Controller - Lấy sơ đồ ghế ngồi của phòng chiếu theo suất chiếu
+// exports.getTheaterSeatsByShowtime = async (req, res) => {
+//     try {
+//         const { theaterId, showtimeId } = req.params;
+
+//         const seats = await Seat.findAll({
+//             where: { theater_id: theaterId },
+//             attributes: ['id', 'row', 'number'],
+//             include: [
+//                 {
+//                     model: Ticket,
+//                     as: 'tickets',
+//                     attributes: ['id'],
+//                     where: {
+//                         showtime_id: showtimeId,
+//                         status: 'confirmed',
+//                     },
+//                     required: false,
+//                 },
+//             ],
+//         });
+
+//         const seatData = seats.map((seat) => ({
+//             seatId: seat.id,
+//             row: seat.row,
+//             number: seat.number,
+//             isBooked: seat.tickets.length > 0,
+//         }));
+
+//         res.json(seatData);
+//     } catch (error) {
+//         console.error('Error fetching theater seats:', error);
+//         res.status(500).json({ message: 'Server error' });
+//     }
+// };
 exports.getTheaterSeatsByShowtime = async (req, res) => {
     try {
         const { theaterId, showtimeId } = req.params;
@@ -559,22 +593,35 @@ exports.getTheaterSeatsByShowtime = async (req, res) => {
                 {
                     model: Ticket,
                     as: 'tickets',
-                    attributes: ['id'],
+                    attributes: ['id', 'status'],
                     where: {
                         showtime_id: showtimeId,
-                        status: 'confirmed',
+                        status: ['confirmed', 'used'],  // Include both 'confirmed' and 'used' statuses
                     },
                     required: false,
                 },
             ],
         });
 
-        const seatData = seats.map((seat) => ({
-            seatId: seat.id,
-            row: seat.row,
-            number: seat.number,
-            isBooked: seat.tickets.length > 0,
-        }));
+        const seatData = seats.map((seat) => {
+            let isUsed = false;
+            let isBooked = false;
+
+            if (seat.tickets.length > 0) {
+                // Check if any ticket has 'used' status
+                const usedTicket = seat.tickets.find(ticket => ticket.status === 'used');
+                isUsed = usedTicket ? true : false;
+                isBooked = true;
+            }
+
+            return {
+                seatId: seat.id,
+                row: seat.row,
+                number: seat.number,
+                isBooked: isBooked,
+                isUsed: isUsed,  // Add the 'isUsed' flag to the seat data
+            };
+        });
 
         res.json(seatData);
     } catch (error) {
@@ -582,6 +629,7 @@ exports.getTheaterSeatsByShowtime = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+
 // Controller - Kiểm tra trạng thái phòng chiếu
 exports.getTheaterStatus = async (req, res) => {
     try {

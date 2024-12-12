@@ -19,13 +19,13 @@ exports.createCinema = async (req, res) => {
             image_url = result.secure_url;
             image_public_id = result.public_id;
         }
-console.log("check image_url", image_url)
-console.log("check image_public", image_public_id)
+        console.log("check image_url", image_url)
+        console.log("check image_public", image_public_id)
 
         const cinema = await Cinema.create({
             name,
             location,
-            number_of_halls,
+            number_of_halls: 0,
             image_url,
             image_public_id,
         });

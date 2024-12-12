@@ -65,41 +65,7 @@ exports.getAllUsers = async (req, res) => {
         });
     }
 };
-// controllers/admin.controller.js
 
-// Controller lấy tất cả người dùng theo role_id
-// exports.getUsersByRole = async (req, res) => {
-//     try {
-//         const roleId = parseInt(req.query.role_id, 10);
-
-//         // Kiểm tra nếu role_id hợp lệ
-//         if (isNaN(roleId) || roleId <= 0) {
-//             return res.status(400).json({
-//                 status: 'fail',
-//                 message: 'Invalid role_id'
-//             });
-//         }
-
-//         // Lấy người dùng theo role_id
-//         const users = await User.findAll({
-//             where: { role_id: roleId },
-//             attributes: ['id', 'username', 'email', 'phone_number', 'role_id', 'image']
-//         });
-
-//         res.status(200).json({
-//             status: 'success',
-//             results: users.length,
-//             data: {
-//                 users
-//             }
-//         });
-//     } catch (error) {
-//         res.status(500).json({
-//             status: 'error',
-//             message: error.message
-//         });
-//     }
-// };
 exports.getUsersByRole = async (req, res) => {
     try {
         const roleId = parseInt(req.query.role_id, 10);

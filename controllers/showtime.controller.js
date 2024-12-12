@@ -136,7 +136,25 @@ exports.createShowtime = async (req, res) => {
         if (new Date(start_time) >= new Date(end_time)) {
             return res.status(400).json({ status: 'fail', message: 'Thời gian bắt đầu phải trước thời gian kết thúc.' });
         }
+        // Kiểm tra chồng chéo thời gian
+        const overlappingShowtime = await Showtime.findOne({
+            where: {
+                theater_id,
+                [Op.or]: [
+                    {
+                        start_time: { [Op.lt]: new Date(end_time) },
+                        end_time: { [Op.gt]: new Date(start_time) },
+                    },
+                ],
+            },
+        });
 
+        if (overlappingShowtime) {
+            return res.status(400).json({
+                status: 'fail',
+                message: 'Thời gian đã bị trùng với suất chiếu khác trong phòng này.',
+            });
+        }
         const newShowtime = await Showtime.create({
             theater_id,
             movie_id,
@@ -154,61 +172,131 @@ exports.createShowtime = async (req, res) => {
 };
 
 // **4. Cập Nhật Một Suất Chiếu**
+// exports.updateShowtime = async (req, res) => {
+//     try {
+//         const { showtimeId } = req.params;
+//         const { theater_id, movie_id, start_time, end_time, status, price } = req.body;
+
+//         const showtime = await Showtime.findByPk(showtimeId);
+//         if (!showtime) {
+//             return res.status(404).json({ status: 'fail', message: 'Không tìm thấy suất chiếu.' });
+//         }
+
+//         // Nếu cập nhật theater hoặc movie, kiểm tra sự tồn tại
+//         if (theater_id) {
+//             const theater = await Theater.findByPk(theater_id);
+//             if (!theater) {
+//                 return res.status(404).json({ status: 'fail', message: 'Phòng chiếu không tồn tại.' });
+//             }
+//         }
+
+//         if (movie_id) {
+//             const movie = await Movie.findByPk(movie_id);
+//             if (!movie) {
+//                 return res.status(404).json({ status: 'fail', message: 'Phim không tồn tại.' });
+//             }
+//         }
+
+//         // Nếu cập nhật thời gian, kiểm tra tính hợp lệ
+//         if (start_time && end_time) {
+//             if (new Date(start_time) >= new Date(end_time)) {
+//                 return res.status(400).json({ status: 'fail', message: 'Thời gian bắt đầu phải trước thời gian kết thúc.' });
+//             }
+//         } else if (start_time && showtime.end_time) {
+//             if (new Date(start_time) >= new Date(showtime.end_time)) {
+//                 return res.status(400).json({ status: 'fail', message: 'Thời gian bắt đầu phải trước thời gian kết thúc.' });
+//             }
+//         } else if (end_time && showtime.start_time) {
+//             if (new Date(showtime.start_time) >= new Date(end_time)) {
+//                 return res.status(400).json({ status: 'fail', message: 'Thời gian kết thúc phải sau thời gian bắt đầu.' });
+//             }
+//         }
+
+//         // Nếu cập nhật giá, kiểm tra tính hợp lệ
+//         if (price !== undefined) {
+//             if (isNaN(price) || Number(price) < 0) {
+//                 return res.status(400).json({ status: 'fail', message: 'Giá phải là một số dương.' });
+//             }
+//         }
+
+//         // Cập nhật suất chiếu
+//         await showtime.update({
+//             theater_id: theater_id || showtime.theater_id,
+//             movie_id: movie_id || showtime.movie_id,
+//             start_time: start_time || showtime.start_time,
+//             end_time: end_time || showtime.end_time,
+//             status: status || showtime.status,
+//             price: price !== undefined ? price : showtime.price
+//         });
+
+//         res.status(200).json({ status: 'success', data: showtime });
+//     } catch (error) {
+//         console.error('Error in updateShowtime:', error);
+//         res.status(500).json({ status: 'fail', message: 'Lỗi khi cập nhật suất chiếu.' });
+//     }
+// };
 exports.updateShowtime = async (req, res) => {
     try {
         const { showtimeId } = req.params;
         const { theater_id, movie_id, start_time, end_time, status, price } = req.body;
 
+        // Tìm suất chiếu cần cập nhật
         const showtime = await Showtime.findByPk(showtimeId);
         if (!showtime) {
             return res.status(404).json({ status: 'fail', message: 'Không tìm thấy suất chiếu.' });
         }
 
-        // Nếu cập nhật theater hoặc movie, kiểm tra sự tồn tại
-        if (theater_id) {
+        // Kiểm tra sự tồn tại của phòng chiếu và phim nếu cần cập nhật
+        if (theater_id && theater_id !== showtime.theater_id) {
             const theater = await Theater.findByPk(theater_id);
             if (!theater) {
                 return res.status(404).json({ status: 'fail', message: 'Phòng chiếu không tồn tại.' });
             }
         }
 
-        if (movie_id) {
+        if (movie_id && movie_id !== showtime.movie_id) {
             const movie = await Movie.findByPk(movie_id);
             if (!movie) {
                 return res.status(404).json({ status: 'fail', message: 'Phim không tồn tại.' });
             }
         }
 
-        // Nếu cập nhật thời gian, kiểm tra tính hợp lệ
-        if (start_time && end_time) {
-            if (new Date(start_time) >= new Date(end_time)) {
-                return res.status(400).json({ status: 'fail', message: 'Thời gian bắt đầu phải trước thời gian kết thúc.' });
-            }
-        } else if (start_time && showtime.end_time) {
-            if (new Date(start_time) >= new Date(showtime.end_time)) {
-                return res.status(400).json({ status: 'fail', message: 'Thời gian bắt đầu phải trước thời gian kết thúc.' });
-            }
-        } else if (end_time && showtime.start_time) {
-            if (new Date(showtime.start_time) >= new Date(end_time)) {
-                return res.status(400).json({ status: 'fail', message: 'Thời gian kết thúc phải sau thời gian bắt đầu.' });
-            }
+        // Kiểm tra thời gian hợp lệ nếu được cập nhật
+        const newStartTime = start_time || showtime.start_time;
+        const newEndTime = end_time || showtime.end_time;
+        if (new Date(newStartTime) >= new Date(newEndTime)) {
+            return res.status(400).json({ status: 'fail', message: 'Thời gian bắt đầu phải trước thời gian kết thúc.' });
         }
 
-        // Nếu cập nhật giá, kiểm tra tính hợp lệ
-        if (price !== undefined) {
-            if (isNaN(price) || Number(price) < 0) {
-                return res.status(400).json({ status: 'fail', message: 'Giá phải là một số dương.' });
-            }
+        // Kiểm tra chồng chéo thời gian với các suất chiếu khác
+        const overlappingShowtime = await Showtime.findOne({
+            where: {
+                theater_id: theater_id || showtime.theater_id,
+                id: { [Op.ne]: showtimeId }, // Loại trừ suất chiếu hiện tại
+                [Op.or]: [
+                    {
+                        start_time: { [Op.lt]: new Date(newEndTime) },
+                        end_time: { [Op.gt]: new Date(newStartTime) },
+                    },
+                ],
+            },
+        });
+
+        if (overlappingShowtime) {
+            return res.status(400).json({
+                status: 'fail',
+                message: 'Thời gian đã bị trùng với suất chiếu khác trong phòng này.',
+            });
         }
 
         // Cập nhật suất chiếu
         await showtime.update({
             theater_id: theater_id || showtime.theater_id,
             movie_id: movie_id || showtime.movie_id,
-            start_time: start_time || showtime.start_time,
-            end_time: end_time || showtime.end_time,
+            start_time: newStartTime,
+            end_time: newEndTime,
             status: status || showtime.status,
-            price: price !== undefined ? price : showtime.price
+            price: price !== undefined ? price : showtime.price,
         });
 
         res.status(200).json({ status: 'success', data: showtime });

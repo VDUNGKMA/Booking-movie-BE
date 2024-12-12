@@ -9,7 +9,6 @@ const authRoutes = require('./routes/auth.routes'); // Import routes cho đăng 
 const adminRoutes = require('./routes/admin.routes'); // Import routes cho admin
 const staffRoutes = require('./routes/staff.routes');
 const customerRoutes = require('./routes/customer.routes');
-// const passport = require('./config/passport'); 
 const { protect } = require('./middleware/authMiddleware'); // Middleware để bảo vệ route bằng JWT
 const { getMe } = require('./controllers/user.controller'); // Hàm xử lý trong controller
 const uploadRoutes = require('./routes/upload.routes');

@@ -6,7 +6,8 @@ const crypto = require('crypto');
 const User = require('../models/user');  // Mô hình người dùng (thay đổi tên nếu cần)
 const sendEmail = require('../utils/sendEmail');  // Hàm gửi email (được tạo ở bước tiếp theo)
 const { Op } = require('sequelize');  // Thêm Op từ Sequelize
-const redisClient = require('../config/redisClient'); // Import Redis client
+// Tạo in-memory store để lưu OTP
+const otpStore = new Map();
 dotenv.config();
 
 // Tạo JWT
@@ -109,8 +110,7 @@ exports.login = async (req, res) => {
     }
 };
 
-
-
+// Hàm forgotPassword
 exports.forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
@@ -119,15 +119,19 @@ exports.forgotPassword = async (req, res) => {
         if (!user) {
             return res.status(404).json({
                 status: 'fail',
-                message: 'Email không tồn tại.'
+                message: 'Email không tồn tại.',
             });
         }
 
         // Tạo mã OTP ngẫu nhiên 6 số
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-        // Lưu OTP vào Redis với thời gian hết hạn là 2 phút (120 giây)
-        await redisClient.setEx(`otp:${email}`, 120, otp);
+        // Lưu OTP vào in-memory store với thời gian hết hạn là 2 phút (120 giây)
+        const expiresAt = Date.now() + 120 * 1000; // 120 giây
+        otpStore.set(email, { otp, expiresAt });
+
+        // Thiết lập bộ dọn dẹp OTP tự động khi hết hạn
+        setTimeout(() => otpStore.delete(email), 120 * 1000);
 
         // Gửi OTP qua email
         const message = `Mã OTP của bạn là: ${otp}. Mã này sẽ hết hạn sau 2 phút.`;
@@ -140,57 +144,47 @@ exports.forgotPassword = async (req, res) => {
 
         res.status(200).json({
             status: 'success',
-            message: 'OTP đã được gửi tới email của bạn.'
+            message: 'OTP đã được gửi tới email của bạn.',
         });
     } catch (err) {
         console.error('Error sending OTP:', err);
 
         res.status(500).json({
             status: 'fail',
-            message: 'Có lỗi xảy ra khi gửi OTP. Vui lòng thử lại sau.'
+            message: 'Có lỗi xảy ra khi gửi OTP. Vui lòng thử lại sau.',
         });
     }
 };
 
-exports.verifyOTP = async (req, res) => {
-    try {
-        const { email, otp } = req.body;
+// Hàm kiểm tra OTP
+exports.verifyOTP = (req, res) => {
+    const { email, otp } = req.body;
 
-        // Kiểm tra mã OTP từ Redis
-        const storedOtp = await redisClient.get(`otp:${email}`);
+    // Lấy OTP từ in-memory store
+    const otpData = otpStore.get(email);
 
-        if (!storedOtp) {
-            return res.status(400).json({
-                status: 'fail',
-                message: 'OTP đã hết hạn hoặc không tồn tại.'
-            });
-        }
-
-        // So sánh OTP
-        if (storedOtp !== otp) {
-            return res.status(400).json({
-                status: 'fail',
-                message: 'OTP không chính xác.'
-            });
-        }
-
-        // Xóa OTP khỏi Redis sau khi xác thực thành công
-        await redisClient.del(`otp:${email}`);
-
-        res.status(200).json({
-            status: 'success',
-            message: 'OTP hợp lệ. Bạn có thể đặt lại mật khẩu.',
-        });
-    } catch (error) {
-        console.error('Error in verifyOTP:', error);
-
-        res.status(500).json({
+    if (!otpData) {
+        return res.status(400).json({
             status: 'fail',
-            message: 'Có lỗi xảy ra. Vui lòng thử lại sau.'
+            message: 'OTP không tồn tại hoặc đã hết hạn.',
         });
     }
-};
 
+    if (otpData.otp !== otp) {
+        return res.status(400).json({
+            status: 'fail',
+            message: 'OTP không hợp lệ.',
+        });
+    }
+
+    // Xóa OTP sau khi xác thực thành công
+    otpStore.delete(email);
+
+    res.status(200).json({
+        status: 'success',
+        message: 'OTP xác thực thành công.',
+    });
+};
 exports.resetPassword = async (req, res) => {
     try {
         const { email, newPassword } = req.body;
@@ -226,65 +220,7 @@ exports.resetPassword = async (req, res) => {
     }
 };
 
-// // Xử lý logic tìm kiếm hoặc tạo người dùng từ Google profile
-// exports.googleAuthHandler = async (accessToken, refreshToken, profile, done) => {
-//     try {
-//         // Tìm người dùng với Google ID
-//         let user = await User.findOne({ where: { googleId: profile.id } });
 
-//         // Nếu không tồn tại, tạo người dùng mới
-//         if (!user) {
-//             user = await User.create({
-//                 googleId: profile.id,
-//                 username: profile.displayName,
-//                 email: profile.emails[0].value,
-//                 image: profile.photos[0].value,
-//             });
-//         }
-//         done(null, user);
-//     } catch (error) {
-//         done(error, null);
-//     }
-// };
-
-// // Xử lý callback sau khi Google xác thực thành công
-// exports.googleCallback = async (req, res) => {
-//     try {
-//         const { clientId } = req.body;
-
-//         // Kiểm tra client ID từ request với client ID trong biến môi trường
-//         if (clientId !== process.env.GOOGLE_CLIENT_ID) {
-//             return res.status(400).json({
-//                 status: 'fail',
-//                 message: 'Invalid client ID',
-//             });
-//         }
-//         const token = createToken(req.user);
-//         res.status(200).json({
-//             status: 'success',
-//             token,
-//             data: {
-//                 user: req.user,
-//             },
-//         });
-//     } catch (error) {
-//         res.status(500).json({
-//             status: 'fail',
-//             message: 'Authentication failed.',
-//             error: error.message,
-//         });
-//     }
-// };
-
-// // Deserialize người dùng dựa trên ID
-// exports.deserializeUser = async (id, done) => {
-//     try {
-//         const user = await User.findByPk(id);
-//         done(null, user);
-//     } catch (error) {
-//         done(error, null);
-//     }
-// };
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 // Google Login API
