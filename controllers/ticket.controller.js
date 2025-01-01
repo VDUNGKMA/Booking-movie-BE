@@ -10,21 +10,36 @@ const Theater = db.Theater;
 const Payment = db.Payment;
 const Movie = db.Movie
 const QRCode = db.QRCode
+const TicketSeats = db.TicketSeats;
 // Import sequelize từ db
 const sequelize = db.sequelize;
 
-// Helper function to calculate ticket price
-const calculateTicketPrice = (showtime, seat) => {
-    // Giá suất chiếu và giá ghế đã được lưu trong cơ sở dữ liệu
-    const showtimePrice = parseFloat(showtime.price) || 0;
-    const seatPrice = parseFloat(seat.price) || 0;
-    return showtimePrice + seatPrice;
-};
-const isSeatAvailable = async (showtimeId, seatId) => {
+
+
+// const isSeatAvailable = async (showtimeId, seatId) => {
+//     const ticket = await Ticket.findOne({
+//         where: {
+//             showtime_id: showtimeId,
+//             payment_status: { [Op.in]: ['pending', 'completed'] }, // Chỉ xét các vé đang đặt hoặc đã thanh toán
+//         },
+//         include: [
+//             {
+//                 model: Seat,
+//                 as: 'seats',
+//                 where: { id: seatId },
+//                 attributes: ['id'],
+//                 through: { attributes: [] },
+//             },
+//         ],
+//     });
+
+//     return !ticket; // Nếu không tìm thấy vé nào liên kết với ghế và suất chiếu, ghế có sẵn
+// };
+const isSeatAvailable = async (showtimeId, seatId, transaction) => {
     const ticket = await Ticket.findOne({
         where: {
             showtime_id: showtimeId,
-            payment_status: { [Op.in]: ['pending', 'completed'] }, // Chỉ xét các vé đang đặt hoặc đã thanh toán
+            payment_status: { [Op.in]: ['pending', 'completed'] },
         },
         include: [
             {
@@ -35,11 +50,149 @@ const isSeatAvailable = async (showtimeId, seatId) => {
                 through: { attributes: [] },
             },
         ],
+        transaction,
+        lock: transaction.LOCK.UPDATE, // Khóa hàng
     });
 
-    return !ticket; // Nếu không tìm thấy vé nào liên kết với ghế và suất chiếu, ghế có sẵn
+    return !ticket;
 };
+// exports.createTicketApi = async (req, res) => {
+//     const { showtimeId, seatIds, paymentMethod, userId } = req.body;
 
+//     if (!showtimeId || !seatIds || !paymentMethod || !userId) {
+//         return res.status(400).json({ status: 'fail', message: 'Thiếu thông tin đặt vé.' });
+//     }
+
+//     try {
+//         await sequelize.transaction(async (t) => {
+//             const showtime = await Showtime.findOne({
+//                 where: { id: showtimeId },
+//                 transaction: t,
+//                 lock: t.LOCK.UPDATE,
+//                 include: [{ model: db.Theater, as: 'theater' }],
+//             });
+
+//             if (!showtime) throw new Error('Suất chiếu không tồn tại.');
+
+//             const showtimePrice = parseFloat(showtime.price);
+
+//             // Kiểm tra ghế tồn tại và thuộc rạp
+//             const seats = await Seat.findAll({
+//                 where: {
+//                     id: seatIds,
+//                     theater_id: showtime.theater_id,
+//                 },
+//                 transaction: t,
+//                 lock: t.LOCK.UPDATE,
+//             });
+
+//             if (seats.length !== seatIds.length) {
+//                 throw new Error('Một hoặc nhiều ghế không tồn tại hoặc không thuộc về rạp của suất chiếu.');
+//             }
+
+//             // Xác định các ghế đã được đặt
+//             const conflictingSeats = [];
+//             for (const seatId of seatIds) {
+//                 const isAvailable = await isSeatAvailable(showtimeId, seatId, t);
+//                 if (!isAvailable) {
+//                     conflictingSeats.push(seatId);
+//                 }
+//             }
+
+//             if (conflictingSeats.length > 0) {
+//                 throw new Error(`Ghế sau đây đã được đặt bởi người khác: ${conflictingSeats.join(', ')}.`);
+//             }
+
+//             // Tính tổng giá vé
+//             const totalPrice = seats.reduce((total, seat) => total + showtimePrice + parseFloat(seat.price), 0);
+
+//             // Lấy danh sách ghế trống
+//             const availableSeats = await Seat.findAll({
+//                 where: {
+//                     theater_id: showtime.theater_id,
+//                     id: {
+//                         [Op.notIn]: sequelize.literal(`(
+//                           SELECT seat_id FROM TicketSeats
+//                           JOIN Tickets ON TicketSeats.ticket_id = Tickets.id
+//                           WHERE Tickets.showtime_id = ${showtimeId}
+//                           AND Tickets.payment_status IN ('pending', 'completed')
+//                       )`),
+//                     },
+//                 },
+//                 transaction: t,
+//                 lock: t.LOCK.UPDATE,
+//             });
+
+//             // Số lượng ghế trống
+//             const availableSeatsCount = availableSeats.length;
+
+//             if (availableSeatsCount < seatIds.length) {
+//                 throw new Error('Không đủ số ghế trống để đặt vé.');
+//             }
+
+//             // Xử lý ưu tiên khi còn 2 ghế
+//             if (availableSeatsCount === 2) {
+//                 const conflictingTransactions = await Ticket.findAll({
+//                     where: {
+//                         showtime_id: showtimeId,
+//                         payment_status: 'pending',
+//                     },
+//                     include: [
+//                         {
+//                             model: Seat,
+//                             as: 'seats',
+//                             attributes: ['id'],
+//                             through: { attributes: [] },
+//                         },
+//                     ],
+//                     transaction: t,
+//                     lock: t.LOCK.UPDATE,
+//                 });
+
+//                 if (
+//                     conflictingTransactions.some(
+//                         (transaction) => transaction.seats.length > seatIds.length
+//                     )
+//                 ) {
+//                     throw new Error('Không đủ ghế trống. Ưu tiên cho giao dịch đặt nhiều ghế hơn.');
+//                 }
+//             }
+
+//             // Tạo vé
+//             const createdTicket = await Ticket.create({
+//                 user_id: userId,
+//                 showtime_id: showtimeId,
+//                 price: totalPrice,
+//                 status: 'confirmed',
+//                 payment_method: paymentMethod,
+//                 payment_status: paymentMethod === 'paypal' ? 'pending' : 'completed',
+//                 reserved_at: paymentMethod === 'paypal' ? new Date() : null,
+//             }, { transaction: t });
+
+//             if (!createdTicket || !createdTicket.id) {
+//                 throw new Error('Không thể tạo vé. Vui lòng thử lại sau.');
+//             }
+
+//             // Liên kết ghế với vé
+//             await createdTicket.addSeats(seatIds, { transaction: t });
+
+//             res.status(201).json({
+//                 status: 'success',
+//                 message: 'Đặt vé thành công.',
+//                 data: {
+//                     totalPrice,
+//                     ticketId: createdTicket.id,
+//                 },
+//             });
+//         });
+//     } catch (error) {
+//         console.error('Error creating booking:', error);
+//         res.status(500).json({
+//             status: 'fail',
+//             message: error.message || 'Lỗi khi đặt vé.',
+//         });
+//     }
+// }
 
 
 exports.createTicketApi = async (req, res) => {
@@ -51,7 +204,6 @@ exports.createTicketApi = async (req, res) => {
 
     try {
         await sequelize.transaction(async (t) => {
-            // Lấy thông tin suất chiếu và giá
             const showtime = await Showtime.findOne({
                 where: { id: showtimeId },
                 transaction: t,
@@ -59,38 +211,89 @@ exports.createTicketApi = async (req, res) => {
                 include: [{ model: db.Theater, as: 'theater' }],
             });
 
-            if (!showtime) {
-                throw new Error('Suất chiếu không tồn tại.');
-            }
+            if (!showtime) throw new Error('Suất chiếu không tồn tại.');
 
-            const showtimePrice = parseFloat(showtime.price);
-
-            // Lấy thông tin ghế và kiểm tra xem ghế có hợp lệ
-            const seats = await Seat.findAll({
+            // const availableSeats = await Seat.findAll({
+            //     where: {
+            //         theater_id: showtime.theater_id,
+            //         id: {
+            //             [Op.notIn]: sequelize.literal(`(
+            //               SELECT seat_id FROM TicketSeats
+            //               JOIN Tickets ON TicketSeats.ticket_id = Tickets.id
+            //               WHERE Tickets.showtime_id = ${showtimeId}
+            //               AND Tickets.payment_status IN ('pending', 'completed')
+            //           )`),
+            //         },
+            //     },
+            //     transaction: t,
+            //     lock: t.LOCK.UPDATE,
+            // });
+            const availableSeats = await Seat.findAll({
                 where: {
-                    id: seatIds,
                     theater_id: showtime.theater_id,
                 },
+                include: [{
+                    model: Ticket,
+                    as: 'tickets',
+                    where: {
+                        showtime_id: showtimeId,
+                        payment_status: { [Op.in]: ['pending', 'completed'] },
+                    },
+                    required: false,
+                }],
                 transaction: t,
                 lock: t.LOCK.UPDATE,
+                having: sequelize.where(sequelize.col('tickets.id'), 'IS', null),
             });
 
-            if (seats.length !== seatIds.length) {
-                throw new Error('Một hoặc nhiều ghế không tồn tại hoặc không thuộc về rạp của suất chiếu.');
+            const availableSeatsCount = availableSeats.length;
+
+            // Kiểm tra nếu không đủ ghế
+            if (availableSeatsCount < seatIds.length) {
+                throw new Error('Không đủ số ghế trống để đặt vé.');
             }
 
-            // Kiểm tra xem ghế đã được đặt cho suất chiếu này chưa
-            for (const seatId of seatIds) {
-                const isAvailable = await isSeatAvailable(showtimeId, seatId);
-                if (!isAvailable) {
-                    throw new Error(`Ghế với ID ${seatId} đã được đặt cho suất chiếu này.`);
+            // Xử lý ưu tiên nếu số ghế còn lại giới hạn
+            if (availableSeatsCount <= seatIds.length) {
+                const conflictingTransactions = await Ticket.findAll({
+                    where: {
+                        showtime_id: showtimeId,
+                        payment_status: 'pending',
+                    },
+                    include: [
+                        {
+                            model: Seat,
+                            as: 'seats',
+                            attributes: ['id'],
+                            through: { attributes: [] },
+                        },
+                    ],
+                    transaction: t,
+                    lock: t.LOCK.UPDATE,
+                });
+
+                const hasPriorityConflict = conflictingTransactions.some(
+                    (transaction) => transaction.seats.length > seatIds.length
+                );
+
+                if (hasPriorityConflict) {
+                    throw new Error('Không đủ ghế trống. Ưu tiên cho giao dịch đặt nhiều ghế hơn.');
                 }
             }
 
-            // Tính tổng giá vé
-            const totalPrice = seats.reduce((total, seat) => total + showtimePrice + parseFloat(seat.price), 0);
+            // Kiểm tra ghế đã được giữ hay đặt
+            for (const seatId of seatIds) {
+                const isAvailable = await isSeatAvailable(showtimeId, seatId, t);
+                if (!isAvailable) {
+                    throw new Error(`Ghế ${seatId} đã được đặt bởi người khác.`);
+                }
+            }
 
-            // Tạo một vé duy nhất cho tất cả các ghế
+            // Tạo vé
+            const totalPrice = availableSeats
+                .filter((seat) => seatIds.includes(seat.id))
+                .reduce((total, seat) => total + parseFloat(showtime.price) + parseFloat(seat.price), 0);
+
             const createdTicket = await Ticket.create({
                 user_id: userId,
                 showtime_id: showtimeId,
@@ -101,28 +304,28 @@ exports.createTicketApi = async (req, res) => {
                 reserved_at: paymentMethod === 'paypal' ? new Date() : null,
             }, { transaction: t });
 
-            if (!createdTicket || !createdTicket.id) {
-                throw new Error('Không thể tạo vé. Vui lòng thử lại sau.');
-            }
-
-            // Liên kết tất cả các ghế với vé vừa tạo thông qua bảng TicketSeats
             await createdTicket.addSeats(seatIds, { transaction: t });
 
-            // Trả về tổng giá và thông tin vé đã tạo
             res.status(201).json({
                 status: 'success',
                 message: 'Đặt vé thành công.',
                 data: {
                     totalPrice,
-                    ticketId: createdTicket.id, // Trả về ID của vé duy nhất
+                    ticketId: createdTicket.id,
                 },
             });
         });
     } catch (error) {
         console.error('Error creating booking:', error);
-        res.status(500).json({ status: 'fail', message: error.message || 'Lỗi khi đặt vé.' });
+        res.status(500).json({
+            status: 'fail',
+            message: error.message || 'Lỗi khi đặt vé.',
+        });
     }
 };
+
+
+
 
 exports.getTicketsForAdmin = async (req, res) => {
     try {

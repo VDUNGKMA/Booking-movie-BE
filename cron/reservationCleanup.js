@@ -8,7 +8,7 @@ async function releaseExpiredReservations() {
     console.log('Running reservation cleanup job...');
 
     // Xác định thời gian hết hạn (ví dụ: 5 phút trước)
-    const expirationTime = new Date(Date.now() - 5 * 60 * 1000); // 5 phút
+    const expirationTime = new Date(Date.now() - 1 * 60 * 1000); // 5 phút
 
     try {
         // Tìm các vé có trạng thái 'pending' và đã được đặt trước hơn 5 phút

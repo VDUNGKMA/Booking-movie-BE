@@ -24,9 +24,9 @@ app.use(cors({
     origin: [process.env.URL_FRONTEND,
         'http://192.168.1.119:5000',
         'http://192.168.0.101:5000',
-        'http://192.168.1.65:5000',
+        'http://192.168.1.38:5000',
         'http://10.0.2.2:5000',
-        'http://192.168.224.65:5000',
+        'http://192.168.198.1:5000',
         'http://localhost:3000'
     ],  // Cho phép frontend từ localhost:5000 (nếu frontend React chạy trên cổng này)
     credentials: true                 // Cho phép gửi cookie, token, thông tin xác thực
