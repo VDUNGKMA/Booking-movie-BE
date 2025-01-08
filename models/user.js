@@ -54,9 +54,7 @@ const User = sequelize.define('User', {
     }
 }, {
     hooks: {
-        // beforeCreate: async (user) => {
-        //     user.password = await bcrypt.hash(user.password, 10); // Mã hóa mật khẩu trước khi lưu
-        // }
+    
         beforeCreate: async (user) => {
             if (user.password) { // Chỉ mã hóa mật khẩu nếu có mật khẩu
                 user.password = await bcrypt.hash(user.password, 10);

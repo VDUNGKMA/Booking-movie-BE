@@ -1,8 +1,8 @@
 // controllers/auth.controller.js
 const jwt = require('jsonwebtoken');
+const CryptoJS = require('crypto-js');
 const bcrypt = require('bcryptjs');
 const dotenv = require('dotenv');
-const crypto = require('crypto');
 const User = require('../models/user');  // Mô hình người dùng (thay đổi tên nếu cần)
 const sendEmail = require('../utils/sendEmail');  // Hàm gửi email (được tạo ở bước tiếp theo)
 const { Op } = require('sequelize');  // Thêm Op từ Sequelize
@@ -111,6 +111,7 @@ exports.login = async (req, res) => {
 };
 
 // Hàm forgotPassword
+
 exports.forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
@@ -126,9 +127,12 @@ exports.forgotPassword = async (req, res) => {
         // Tạo mã OTP ngẫu nhiên 6 số
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-        // Lưu OTP vào in-memory store với thời gian hết hạn là 2 phút (120 giây)
+        // Mã hóa OTP với AES
+        const encryptedOtp = CryptoJS.AES.encrypt(otp, process.env.AES_SECRET_KEY).toString();
+
+        // Lưu OTP mã hóa vào in-memory store với thời gian hết hạn là 2 phút
         const expiresAt = Date.now() + 120 * 1000; // 120 giây
-        otpStore.set(email, { otp, expiresAt });
+        otpStore.set(email, { encryptedOtp, expiresAt });
 
         // Thiết lập bộ dọn dẹp OTP tự động khi hết hạn
         setTimeout(() => otpStore.delete(email), 120 * 1000);
@@ -157,6 +161,7 @@ exports.forgotPassword = async (req, res) => {
 };
 
 // Hàm kiểm tra OTP
+
 exports.verifyOTP = (req, res) => {
     const { email, otp } = req.body;
 
@@ -170,7 +175,10 @@ exports.verifyOTP = (req, res) => {
         });
     }
 
-    if (otpData.otp !== otp) {
+    // Giải mã OTP
+    const decryptedOtp = CryptoJS.AES.decrypt(otpData.encryptedOtp, process.env.AES_SECRET_KEY).toString(CryptoJS.enc.Utf8);
+
+    if (decryptedOtp !== otp) {
         return res.status(400).json({
             status: 'fail',
             message: 'OTP không hợp lệ.',
@@ -185,6 +193,7 @@ exports.verifyOTP = (req, res) => {
         message: 'OTP xác thực thành công.',
     });
 };
+
 exports.resetPassword = async (req, res) => {
     try {
         const { email, newPassword } = req.body;
@@ -233,7 +242,11 @@ exports.googleLogin = async (req, res) => {
             idToken: token,
             audience: process.env.GOOGLE_CLIENT_ID,
         });
+        console.log("check ticket", ticket)
         const payload = ticket.getPayload();
+        // Kiểm tra audience và payload
+        console.log('Payload:', payload);
+        console.log('Audience:', payload.aud);
         const { sub, email, name, picture } = payload; // Google ID, email, name, and picture
 
         // Find or create user

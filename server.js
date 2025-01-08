@@ -12,6 +12,7 @@ const customerRoutes = require('./routes/customer.routes');
 const { protect } = require('./middleware/authMiddleware'); // Middleware để bảo vệ route bằng JWT
 const { getMe } = require('./controllers/user.controller'); // Hàm xử lý trong controller
 const uploadRoutes = require('./routes/upload.routes');
+
 // Khởi tạo ứng dụng Express
 const app = express();
 
@@ -42,7 +43,7 @@ app.use(bodyParser.json({ limit: '1000mb' }));   // Tăng giới hạn cho các 
 app.use(bodyParser.urlencoded({ limit: '1000mb', extended: true })); // Tăng giới hạn cho payload dạng form-data
 // Middleware để xử lý JSON
 app.use(express.json());
-
+// Thông tin Google Client từ Google Console
 app.use('/api/auth', authRoutes); // Route cho đăng ký, đăng nhập
 app.use('/api/admin', adminRoutes); // Route cho các hành động của admin
 app.use('/api/staff', staffRoutes);
@@ -52,6 +53,7 @@ app.use('/uploads', express.static('uploads'));
 
 // Sử dụng các route tải ảnh
 app.use('/api/upload', uploadRoutes);
+
 
 const cron = require('node-cron');
 const releaseExpiredReservations = require('./cron/reservationCleanup');
