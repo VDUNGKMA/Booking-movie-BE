@@ -16,7 +16,15 @@ const createToken = (user) => {
         expiresIn: process.env.JWT_EXPIRES_IN
     });
 };
-
+const createRefreshToken = (user) => {
+  return jwt.sign(
+    { id: user.id, role: user.role },
+    process.env.JWT_SECRET_REFRESH,
+    {
+      expiresIn: process.env.JWT_EXPIRES_IN_REFRESH,
+    }
+  );
+};
 exports.registerCustomer = async (req, res) => {
     try {
         const { username, email, password, phone_number, image } = req.body;
@@ -86,11 +94,12 @@ exports.login = async (req, res) => {
 
         // Tạo JWT token
         const token = createToken(user);
-
+        const refresh_token = createRefreshToken(user);
         // Trả về token và thông tin người dùng
         res.status(200).json({
             status: 'success',
             token,
+            refresh_token,
             data: {
                 user: {
                     id: user.id,
@@ -117,12 +126,12 @@ exports.forgotPassword = async (req, res) => {
         const { email } = req.body;
         const user = await User.findOne({ where: { email } });
 
-        if (!user) {
-            return res.status(404).json({
-                status: 'fail',
-                message: 'Email không tồn tại.',
-            });
-        }
+        // if (!user) {
+        //     return res.status(404).json({
+        //         status: 'fail',
+        //         message: 'Email không tồn tại.',
+        //     });
+        // }
 
         // Tạo mã OTP ngẫu nhiên 6 số
         const otp = Math.floor(100000 + Math.random() * 900000).toString();

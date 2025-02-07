@@ -213,21 +213,6 @@ exports.createTicketApi = async (req, res) => {
 
             if (!showtime) throw new Error('Suất chiếu không tồn tại.');
 
-            // const availableSeats = await Seat.findAll({
-            //     where: {
-            //         theater_id: showtime.theater_id,
-            //         id: {
-            //             [Op.notIn]: sequelize.literal(`(
-            //               SELECT seat_id FROM TicketSeats
-            //               JOIN Tickets ON TicketSeats.ticket_id = Tickets.id
-            //               WHERE Tickets.showtime_id = ${showtimeId}
-            //               AND Tickets.payment_status IN ('pending', 'completed')
-            //           )`),
-            //         },
-            //     },
-            //     transaction: t,
-            //     lock: t.LOCK.UPDATE,
-            // });
             const availableSeats = await Seat.findAll({
                 where: {
                     theater_id: showtime.theater_id,
